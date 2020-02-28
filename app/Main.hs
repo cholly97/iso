@@ -1,6 +1,17 @@
 module Main where
 
-import Lib
+import           Lib
+import           Graphics.Gloss.Interface.IO.Game
 
 main :: IO ()
-main = someFunc
+main = playIO display
+              bgColor
+              fps
+              initWorld
+              displayWorld
+              handleInputs
+              timeUpdate
+ where
+  display = FullScreen
+  fps     = 60
+  bgColor = white

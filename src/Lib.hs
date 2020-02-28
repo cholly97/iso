@@ -1,16 +1,11 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Lib
-  ( someFunc
-  )
-where
+module Lib where
 
 import           Control.Lens
 import           Graphics.Gloss
 import           Graphics.Gloss.Interface.IO.Game
 
-fps = 60
 
-bgColor = white
 
 data LimitPoint
   = Point Point
@@ -46,10 +41,3 @@ handleInputs _ _ = return initWorld
 timeUpdate :: Float -> World -> IO World
 timeUpdate = (return .) . (grid . spacing %~) . (+) . (* 10)
 -- timeUpdate dt w = return ((over (grid . spacing) (+ (dt * 10))) w)
-
-window :: Display
-window = FullScreen
-
-someFunc :: IO ()
-someFunc =
-  playIO window bgColor fps initWorld displayWorld handleInputs timeUpdate
