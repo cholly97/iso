@@ -13,5 +13,5 @@ main = playIO display
               timeUpdate
  where
   display = FullScreen
-  fps     = 60
+  fps     = 144
   bgColor = white
