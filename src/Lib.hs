@@ -2,6 +2,7 @@
 module Lib where
 
 import           Data.Maybe
+import qualified Data.Set                      as Set
 import           Control.Lens
 import           Control.Monad
 import           Graphics.Gloss
@@ -17,8 +18,8 @@ type Bounds = (Float, Float)
 type Angle = Float
 
 data Limit
-  = Infinite {angle :: Angle, normal :: Vector, dists :: [Float]}
-  | Finite {point :: Point, angles :: [Angle]}
+  = Infinite {angle :: Angle, normal :: Vector, dists :: Set.Set Float}
+  | Finite {point :: Point, angles :: Set.Set Angle}
 
 type Triple a = (a, a, a)
 
@@ -43,9 +44,9 @@ initWorld = World
   { _bounds = Nothing
   , _grid   = Grid
                 { _spacing = 42.0
-                , _limits  = [ Infinite (pi / 2) (1, 0) []
-                             , Finite (rotateV (-pi * 1 / 6) (400, 0)) []
-                             , Finite (rotateV (-pi * 5 / 6) (400, 0)) []
+                , _limits  = [ Infinite (pi / 2) (1, 0) Set.empty
+                             , Finite (rotateV (-pi * 1 / 6) (400, 0)) Set.empty
+                             , Finite (rotateV (-pi * 5 / 6) (400, 0)) Set.empty
                              ]
                 }
   }
@@ -66,8 +67,9 @@ drawLimitPoints (Finite p _    ) = translateP p $ Circle 10
 
 drawGridLines :: Bounds -> Limit -> Picture
 drawGridLines b (Infinite a v ds) =
-  Pictures $ [\d -> linePA b (d Pt.* v) a] <*> ds
-drawGridLines b (Finite p as) = Pictures $ [\a -> linePA b p a] <*> as
+  Pictures $ [\d -> linePA b (d Pt.* v) a] <*> Set.toList ds
+drawGridLines b (Finite p as) =
+  Pictures $ [\a -> linePA b p a] <*> Set.toList as
 
 translateP :: Point -> Picture -> Picture
 translateP = uncurry Translate
@@ -81,8 +83,8 @@ linePA (w, h) p a =
   translateP p . (Rotate (radToDeg (-a))) $ Line [(-w - h, 0), (w + h, 0)]
 
 addLine :: Point -> Limit -> Limit
-addLine q (Infinite a v ds) = Infinite a v (dotV q v : ds)
-addLine q (Finite p as    ) = Finite p (argV (p Pt.- q) : as)
+addLine q (Infinite a v ds) = Infinite a v (Set.insert (dotV q v) ds)
+addLine q (Finite p as    ) = Finite p (Set.insert (argV (p Pt.- q)) as)
 
 addGridPoint :: Point -> World -> World
 addGridPoint p = over (grid . limits) ([addLine p] <*>)
