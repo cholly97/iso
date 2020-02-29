@@ -67,18 +67,23 @@ drawLimitPoints (Finite p _    ) = translateP p $ Circle 10
 
 drawGridLines :: Bounds -> Limit -> Picture
 drawGridLines b (Infinite a v ds) =
-  Pictures $ [\d -> linePA b (d Pt.* v) a] <*> Set.toList ds
-drawGridLines b (Finite p as) =
-  Pictures $ [\a -> linePA b p a] <*> Set.toList as
+  Pictures $ [lineAND b a v] <*> Set.toList ds
+drawGridLines b (Finite p as) = Pictures $ [linePA b p] <*> Set.toList as
 
 translateP :: Point -> Picture -> Picture
 translateP = uncurry Translate
 
 rayPA :: Bounds -> Point -> Float -> Picture
+-- draw ray based on point and angle
 rayPA (w, h) p a =
   translateP p . (Rotate (radToDeg (-a))) $ Line [origin, (w + h, 0)]
 
-linePA :: Bounds -> Point -> Float -> Picture
+lineAND :: Bounds -> Angle -> Vector -> Float -> Picture
+-- draw line based on angle, normal vector, and distance
+lineAND b a v d = linePA b (d Pt.* v) a
+
+linePA :: Bounds -> Point -> Angle -> Picture
+-- draw line based on point and angle
 linePA (w, h) p a =
   translateP p . (Rotate (radToDeg (-a))) $ Line [(-w - h, 0), (w + h, 0)]
 
