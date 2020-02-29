@@ -21,7 +21,7 @@ type Triple a = (a, a, a)
 
 data Grid = Grid
   { _spacing :: Float
-  , _limits :: Triple Limit
+  , _limits :: [Limit]
   }
 
 data World = World
@@ -42,12 +42,12 @@ initWorld = World
   , _origins = [origin]
   , _grid    = Grid
                  { _spacing = 42.0
-                 , _limits  = ( Angle (pi / 2)
+                 , _limits  = [ Angle (pi / 2)
                               , LimitPoint (rotateV (-pi * 1 / 6) (400, 0))
                               -- , Angle (-pi * 1 / 6)
                               , LimitPoint (rotateV (-pi * 5 / 6) (400, 0))
                               -- , Angle (-pi * 5 / 6)
-                              )
+                              ]
                  }
   }
 
@@ -57,11 +57,10 @@ displayWorld = return . Pictures . ap ((:) . Circle . _spacing . _grid)
 
 drawGrid :: World -> Picture
 drawGrid world =
-  let (x, y, z) = _limits . _grid $ world
-  in  Pictures
-        $   [drawLimitPoints]
-        ++  ([drawGridLines . _bounds $ world] <*> _origins world)
-        <*> [x, y, z]
+  Pictures
+    $   [drawLimitPoints]
+    ++  ([drawGridLines . _bounds $ world] <*> _origins world)
+    <*> (world ^. grid . limits)
 
 drawLimitPoints :: Limit -> Picture
 drawLimitPoints (Angle      _) = Blank
