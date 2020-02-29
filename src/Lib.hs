@@ -2,42 +2,104 @@
 module Lib where
 
 import           Control.Lens
+import           Control.Monad
 import           Graphics.Gloss
+import           Graphics.Gloss.Data.Vector
+import           Graphics.Gloss.Geometry.Angle
 import           Graphics.Gloss.Interface.IO.Game
+import           Graphics.Gloss.Interface.Environment
+import qualified Graphics.Gloss.Data.Point.Arithmetic
+                                               as Pt
 
+type Bounds = (Float, Float)
 
-
-data LimitPoint
-  = Point Point
+data Limit
+  = LimitPoint Point
   | Angle Float
 
 type Triple a = (a, a, a)
 
 data Grid = Grid
   { _spacing :: Float
-  , _limitPoints :: Triple LimitPoint
+  , _limits :: Triple Limit
   }
 
 data World = World
-  { _grid :: Grid
+  { _bounds :: Bounds
+  , _origins :: [Point]
+  , _grid :: Grid
   }
 
 $(makeLenses ''World)
 $(makeLenses ''Grid)
 
+origin :: Point
+origin = (0, 0)
+
 initWorld :: World
 initWorld = World
-  { _grid = Grid { _spacing     = 42.0
-                 , _limitPoints = (Angle 1.0, Angle 2.0, Point (3.0, 4.0))
+  { _bounds  = origin
+  , _origins = [origin]
+  , _grid    = Grid
+                 { _spacing = 42.0
+                 , _limits  = ( Angle (pi / 2)
+                              , LimitPoint (rotateV (-pi * 1 / 6) (400, 0))
+                              -- , Angle (-pi * 1 / 6)
+                              , LimitPoint (rotateV (-pi * 5 / 6) (400, 0))
+                              -- , Angle (-pi * 5 / 6)
+                              )
                  }
   }
 
 displayWorld :: World -> IO Picture
-displayWorld = return . Circle . _spacing . _grid
+displayWorld = return . Pictures . ap ((:) . Circle . _spacing . _grid)
+                                      (([drawGrid] <*>) . pure)
+
+drawGrid :: World -> Picture
+drawGrid world =
+  let (x, y, z) = _limits . _grid $ world
+  in  Pictures
+        $   [drawLimitPoints]
+        ++  ([drawGridLines . _bounds $ world] <*> _origins world)
+        <*> [x, y, z]
+
+drawLimitPoints :: Limit -> Picture
+drawLimitPoints (Angle      _) = Blank
+drawLimitPoints (LimitPoint p) = translateP p $ Circle 10
+
+drawGridLines :: Bounds -> Point -> Limit -> Picture
+drawGridLines bounds o (Angle      a) = linePA bounds o a
+drawGridLines bounds o (LimitPoint p) = linePA bounds o . argV $ p Pt.- o
+
+translateP :: Point -> Picture -> Picture
+translateP = uncurry Translate
+
+rayPA :: Bounds -> Point -> Float -> Picture
+rayPA (w, h) p a =
+  translateP p . (Rotate (radToDeg (-a))) $ Line [origin, (w + h, 0)]
+
+linePA :: Bounds -> Point -> Float -> Picture
+linePA (w, h) p a =
+  translateP p . (Rotate (radToDeg (-a))) $ Line [(-w - h, 0), (w + h, 0)]
 
 handleInputs :: Event -> World -> IO World
-handleInputs _ _ = return initWorld
+handleInputs (EventKey (MouseButton LeftButton) Down undefined p) =
+  return . over origins (p :)
+handleInputs _ = return
 
 timeUpdate :: Float -> World -> IO World
-timeUpdate = (return .) . (grid . spacing %~) . (+) . (* 10)
--- timeUpdate dt w = return ((over (grid . spacing) (+ (dt * 10))) w)
+timeUpdate dt world = do
+  let world' = (grid . spacing %~ (+ (dt * 0))) world
+  if _bounds world == (0, 0)
+    then do
+      setBounds world'
+    else do
+      return world'
+
+setBounds :: World -> IO World
+setBounds world = do
+  gs <- getScreenSize
+  let s = join bimap fromIntegral gs
+  return . set bounds s $ world
+-- setBounds =
+--   flip fmap getScreenSize . (flip ((bounds .~) . (join bimap fromIntegral)))
