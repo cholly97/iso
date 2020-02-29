@@ -1,6 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Lib where
 
+import           Data.Maybe
 import           Control.Lens
 import           Control.Monad
 import           Graphics.Gloss
@@ -25,8 +26,8 @@ data Grid = Grid
   }
 
 data World = World
-  { _bounds :: Bounds
   , _origins :: [Point]
+  { _bounds :: Maybe Bounds
   , _grid :: Grid
   }
 
@@ -89,7 +90,7 @@ handleInputs _ = return
 timeUpdate :: Float -> World -> IO World
 timeUpdate dt world = do
   let world' = (grid . spacing %~ (+ (dt * 0))) world
-  if _bounds world == (0, 0)
+  if _bounds world == Nothing
     then do
       setBounds world'
     else do
@@ -98,7 +99,5 @@ timeUpdate dt world = do
 setBounds :: World -> IO World
 setBounds world = do
   gs <- getScreenSize
-  let s = join bimap fromIntegral gs
+  let s = Just . join bimap fromIntegral $ gs
   return . set bounds s $ world
--- setBounds =
---   flip fmap getScreenSize . (flip ((bounds .~) . (join bimap fromIntegral)))
