@@ -64,11 +64,11 @@ drawPoint :: Point -> Picture
 drawPoint p = Color blue $ translateP p $ Circle 2
 
 drawGridLines :: Bounds -> Limit -> Picture
-drawGridLines b l = Pictures $ [lineFunc b l] <*> Set.toList (_lineStore l)
+drawGridLines b l = Pictures $ lineFunc b l <$> Set.toList (_lineStore l)
 
 drawClosestGridLines :: Point -> Bounds -> Limit -> Picture
 drawClosestGridLines p b l =
-  Pictures $ [Color red . lineFunc b l] <*> lookupNearest p l
+  Pictures $ Color red . lineFunc b l <$> lookupNearest p l
 
 handleInputs :: Event -> World -> IO World
 handleInputs (EventKey (MouseButton LeftButton) Down undefined p) =
@@ -77,7 +77,7 @@ handleInputs (EventMotion p) = return . set mousePosition p
 handleInputs _               = return
 
 addGridPoint :: Point -> World -> World
-addGridPoint p = grid . limits %~ ([addLine p] <*>)
+addGridPoint p = grid . limits %~ (addLine p <$>)
 
 addLine :: Point -> Limit -> Limit
 addLine q l = (lineStore %~ Set.insert (pointToLineRep q l)) l
