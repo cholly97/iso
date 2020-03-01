@@ -58,16 +58,17 @@ drawGrid world =
 
 drawLimitPoints :: Limit -> Picture
 drawLimitPoints (Infinite _ _ _) = Blank
-drawLimitPoints (Finite p _    ) = translateP p $ Circle 10
+drawLimitPoints (Finite p _    ) = drawPoint p
+
+drawPoint :: Point -> Picture
+drawPoint p = Color blue $ translateP p $ Circle 2
 
 drawGridLines :: Bounds -> Limit -> Picture
 drawGridLines b l = Pictures $ [lineFunc b l] <*> Set.toList (_lineStore l)
 
 drawClosestGridLines :: Point -> Bounds -> Limit -> Picture
-drawClosestGridLines q b l =
-  Pictures $ [Color red . lineFunc b l] <*> (lookupNearest l)
-    (pointToLineRep q l)
-    (_lineStore l)
+drawClosestGridLines p b l =
+  Pictures $ [Color red . lineFunc b l] <*> lookupNearest p l
 
 handleInputs :: Event -> World -> IO World
 handleInputs (EventKey (MouseButton LeftButton) Down undefined p) =

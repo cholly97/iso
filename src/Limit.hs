@@ -4,6 +4,7 @@ module Limit where
 import           Geom
 import           Data.Maybe
 import           Data.Monoid
+import           Control.Monad
 import qualified Data.Set                      as Set
 import           Control.Lens
 import           Graphics.Gloss
@@ -18,21 +19,24 @@ lineFunc :: Bounds -> Limit -> Float -> Picture
 lineFunc b (Infinite a v _) = lineAND b a v
 lineFunc b (Finite p _    ) = linePA b p
 
-lookupNearest :: Ord a => Limit -> a -> Set.Set a -> [a]
-lookupNearest (Infinite _ _ _) = lookupLGE
-lookupNearest (Finite _ _    ) = lookupLGECircular
+lookupNearest :: Point -> Limit -> [Float]
+lookupNearest p = lookupNearestFunc <*> pointToLineRep p <*> _lineStore
 
-pointToLineRep :: Point -> Limit -> Float
-pointToLineRep q (Infinite _ v _) = projectVV q v
-pointToLineRep q (Finite p _    ) = anglePP q p
+lookupNearestFunc :: Limit -> Float -> Set.Set Float -> [Float]
+lookupNearestFunc (Infinite _ _ _) = lookupLGE
+lookupNearestFunc (Finite _ _    ) = lookupLGECircular
 
-lookupLGE :: Ord a => a -> Set.Set a -> [a]
+lookupLGE :: Float -> Set.Set Float -> [Float]
 lookupLGE k s = catMaybes $ [Set.lookupLE, Set.lookupGE] <*> [k] <*> [s]
 
-lookupLGECircular :: Ord a => a -> Set.Set a -> [a]
+lookupLGECircular :: Float -> Set.Set Float -> [Float]
 lookupLGECircular k s =
   catMaybes
     $   [getFirst . mconcat . map First]
     <*> (   [(<*> [s])]
         <*> [[Set.lookupLE k, Set.lookupMax], [Set.lookupGE k, Set.lookupMin]]
         )
+
+pointToLineRep :: Point -> Limit -> Float
+pointToLineRep q (Infinite _ v _) = projectVV q v
+pointToLineRep q (Finite p _    ) = anglePP q p
