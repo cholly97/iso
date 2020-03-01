@@ -15,13 +15,17 @@ import           Graphics.Gloss.Interface.Environment
 
 
 data Limit
-  = Infinite {angle :: Angle, normal :: Vector, dists :: Set.Set Float}
-  | Finite {point :: Point, angles :: Set.Set Angle}
+  = Infinite {angle :: Float, normal :: Vector, _lineStore :: Set.Set Float}
+  | Finite {point :: Point, _lineStore :: Set.Set Float}
+
+$(makeLenses ''Limit)
 
 data Grid = Grid
   { _spacing :: Float
   , _limits :: [Limit]
   }
+
+$(makeLenses ''Grid)
 
 data World = World
   { _bounds :: Maybe Bounds
@@ -30,7 +34,6 @@ data World = World
   }
 
 $(makeLenses ''World)
-$(makeLenses ''Grid)
 
 initWorld :: World
 initWorld = World
@@ -60,11 +63,23 @@ drawGrid world =
     ^.  grid
     .   limits
 
+lineFunc :: Bounds -> Limit -> Float -> Picture
+lineFunc b (Infinite a v _) = lineAND b a v
+lineFunc b (Finite p _    ) = linePA b p
+
+lookupNearest :: Ord a => Limit -> a -> Set.Set a -> [a]
+lookupNearest (Infinite _ _ _) = lookupLGE
+lookupNearest (Finite _ _    ) = lookupLGECircular
+
+pointToLineRep :: Point -> Limit -> Float
+pointToLineRep q (Infinite _ v _) = projectVV q v
+pointToLineRep q (Finite p _    ) = anglePP q p
+
 drawClosestGridLines :: Point -> Bounds -> Limit -> Picture
-drawClosestGridLines q b (Infinite a v ds) =
-  Pictures $ [Color red . lineAND b a v] <*> lookupLGE (projectVV q v) ds
-drawClosestGridLines q b (Finite p as) =
-  Pictures $ [Color red . linePA b p] <*> lookupLGECircular (anglePP p q) as
+drawClosestGridLines q b l =
+  Pictures $ [Color red . lineFunc b l] <*> (lookupNearest l)
+    (pointToLineRep q l)
+    (_lineStore l)
 
 lookupLGE :: Ord a => a -> Set.Set a -> [a]
 lookupLGE k s = catMaybes $ [Set.lookupLE, Set.lookupGE] <*> [k] <*> [s]
@@ -82,16 +97,13 @@ drawLimitPoints (Infinite _ _ _) = Blank
 drawLimitPoints (Finite p _    ) = translateP p $ Circle 10
 
 drawGridLines :: Bounds -> Limit -> Picture
-drawGridLines b (Infinite a v ds) =
-  Pictures $ [lineAND b a v] <*> Set.toList ds
-drawGridLines b (Finite p as) = Pictures $ [linePA b p] <*> Set.toList as
+drawGridLines b l = Pictures $ [lineFunc b l] <*> Set.toList (_lineStore l)
 
 addLine :: Point -> Limit -> Limit
-addLine q (Infinite a v ds) = Infinite a v (Set.insert (projectVV q v) ds)
-addLine q (Finite p as    ) = Finite p (Set.insert (anglePP p q) as)
+addLine q l = (lineStore %~ Set.insert (pointToLineRep q l)) l
 
 addGridPoint :: Point -> World -> World
-addGridPoint p = over (grid . limits) ([addLine p] <*>)
+addGridPoint p = grid . limits %~ ([addLine p] <*>)
 
 handleInputs :: Event -> World -> IO World
 handleInputs (EventKey (MouseButton LeftButton) Down undefined p) =
@@ -101,12 +113,11 @@ handleInputs _               = return
 
 timeUpdate :: Float -> World -> IO World
 timeUpdate dt world = do
-  let world' = (grid . spacing %~ (+ (dt * 0))) world
   if _bounds world == Nothing
     then do
-      setBounds . addGridPoint origin $ world'
+      setBounds . addGridPoint origin $ world
     else do
-      return world'
+      return world
 
 setBounds :: World -> IO World
 setBounds world = do
