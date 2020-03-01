@@ -93,5 +93,6 @@ timeUpdate dt world = do
 setBounds :: World -> IO World
 setBounds world = do
   gs <- getScreenSize
-  let s = Just . join bimap fromIntegral $ gs
+  let (w, h) = join bimap fromIntegral $ gs
+  let s      = Just (-w / 2, w / 2, -h / 2, h / 2)
   return . set bounds s $ world
