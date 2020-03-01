@@ -52,17 +52,18 @@ displayWorld = return . Pictures . ap ((:) . Circle . _spacing . _grid)
 drawGrid :: World -> Picture
 drawGrid world =
   Pictures
-    $   [ drawLimitPoints
-        , drawGridLines . fromMaybe origin $ (world ^. bounds)
-        , drawClosestGridLines (fromMaybe origin (world ^. bounds))
-                               (world ^. mousePosition)
-        ]
-    <*> (world ^. grid . limits)
+    $   [drawLimitPoints]
+    ++  (   [drawGridLines, drawClosestGridLines $ world ^. mousePosition]
+        <*> [fromMaybe origin $ world ^. bounds]
+        )
+    <*> world
+    ^.  grid
+    .   limits
 
-drawClosestGridLines :: Bounds -> Point -> Limit -> Picture
-drawClosestGridLines b q (Infinite a v ds) =
+drawClosestGridLines :: Point -> Bounds -> Limit -> Picture
+drawClosestGridLines q b (Infinite a v ds) =
   Pictures $ [Color red . lineAND b a v] <*> lookupLGE (projectVV q v) ds
-drawClosestGridLines b q (Finite p as) =
+drawClosestGridLines q b (Finite p as) =
   Pictures $ [Color red . linePA b p] <*> lookupLGECircular (anglePP p q) as
 
 lookupLGE :: Ord a => a -> Set.Set a -> [a]
