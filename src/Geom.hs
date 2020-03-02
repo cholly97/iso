@@ -14,6 +14,9 @@ type Bounds = (Float, Float, Float, Float)
 origin :: Point
 origin = (0, 0)
 
+dist :: Point -> Point -> Float
+dist p q = magV (p Pt.- q)
+
 projectVV :: Vector -> Vector -> Float
 projectVV = dotV
 
@@ -26,15 +29,19 @@ pointPA p a = (p Pt.+ unitVectorAtAngle a)
 translateP :: Point -> Picture -> Picture
 translateP = uncurry Translate
 
+linePP :: Bounds -> (Point, Point) -> Picture
+linePP b (p, q) = Line $ intersectEdgesLine b p q
+
+intersectLinesLines :: [(Point, Point)] -> [(Point, Point)] -> [Point]
+intersectLinesLines ls ls' =
+  catMaybes $ uncurry <$> (uncurry intersectLineLine <$> ls) <*> ls'
+
 intersectLineSeg :: Point -> Point -> (Point, Point) -> Maybe Point
 intersectLineSeg p1 p2 (p3, p4) = intersectSegLine p3 p4 p1 p2
 
-linePP :: Bounds -> (Point, Point) -> Picture
-linePP b (p, q) = Line $ intersectLineWithEdges b p q
-
-intersectLineWithEdges :: Bounds -> Point -> Point -> [Point]
+intersectEdgesLine :: Bounds -> Point -> Point -> [Point]
 -- should only have either 2 or 0, just think about it...
-intersectLineWithEdges b p q = catMaybes $ intersectLineSeg p q <$> edges b
+intersectEdgesLine b p q = catMaybes $ intersectLineSeg p q <$> edges b
 
 edges :: Bounds -> [(Point, Point)]
 edges (x0, x1, y0, y1) =

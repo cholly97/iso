@@ -3,6 +3,8 @@ module Lib where
 
 import           Geom
 import           Limit
+import           Data.Function                  ( on )
+import           Data.List                      ( minimumBy )
 import           Data.Maybe
 import           Control.Lens
 import           Control.Arrow
@@ -46,29 +48,36 @@ displayWorld = return . Pictures . ap ((:) . Circle . _spacing . _grid)
                                       (([drawGrid] <*>) . pure)
 
 drawGrid :: World -> Picture
-drawGrid world =
-  Pictures
-    $   [drawLimitPoints]
-    ++  (   [drawGridLines, drawClosestGridLines $ world ^. mousePosition]
-        <*> [fromMaybe (0, 0, 0, 0) $ world ^. bounds]
-        )
-    <*> world
-    ^.  grid
-    .   limits
+drawGrid world = Pictures $ liftM2
+  (:)
+  (maybe Blank drawPoint . getClosestIntersection (world ^. mousePosition))
+  ([drawLimitPoints, drawGridLines . fromMaybe (0, 0, 0, 0) $ world ^. bounds] <*>
+  )
+  (world ^. grid . limits)
 
 drawLimitPoints :: Limit -> Picture
 drawLimitPoints (Infinite _ _ _) = Blank
 drawLimitPoints (Finite p _    ) = drawPoint p
 
 drawPoint :: Point -> Picture
-drawPoint p = Color blue $ translateP p $ Circle 2
+drawPoint p = Color blue $ translateP p $ Circle 5
 
 drawGridLines :: Bounds -> Limit -> Picture
 drawGridLines b l = Pictures $ linePP b <$> snd <$> Map.toList (l ^. lineStore)
 
-drawClosestGridLines :: Point -> Bounds -> Limit -> Picture
-drawClosestGridLines p b l =
-  Pictures $ Color red . linePP b <$> snd <$> lookupNearest p l
+getClosestIntersection :: Point -> [Limit] -> Maybe Point
+getClosestIntersection p ls =
+  getClosest p . concat $ uncurry intersectLinesLines <$> linesVsLiness
+ where
+  nearestLiness :: [[(Point, Point)]]
+  nearestLiness = lookupNearest p <$> ls
+  nearestLinesSuffs :: [[[(Point, Point)]]]
+  nearestLinesSuffs = scanr (:) [] nearestLiness
+  linesVsLiness :: [([(Point, Point)], [(Point, Point)])]
+  linesVsLiness = over _2 concat <$> mapMaybe uncons nearestLinesSuffs
+
+getClosest _ [] = Nothing
+getClosest p qs = Just $ minimumBy (compare `on` dist p) qs
 
 handleInputs :: Event -> World -> IO World
 handleInputs (EventKey (MouseButton LeftButton) Down undefined p) =
