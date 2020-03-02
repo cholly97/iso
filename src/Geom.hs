@@ -29,13 +29,8 @@ translateP = uncurry Translate
 intersectLineSeg :: Point -> Point -> (Point, Point) -> Maybe Point
 intersectLineSeg p1 p2 (p3, p4) = intersectSegLine p3 p4 p1 p2
 
-lineAND :: Bounds -> Float -> Vector -> Float -> Picture
--- draw line based on angle, normal vector, and distance
-lineAND b a v d = linePA b (d Pt.* v) a
-
-linePA :: Bounds -> Point -> Float -> Picture
--- draw line based on point and angle
-linePA b p a = Line . intersectLineWithEdges b p $ pointPA p a
+linePP :: Bounds -> (Point, Point) -> Picture
+linePP b (p, q) = Line $ intersectLineWithEdges b p q
 
 intersectLineWithEdges :: Bounds -> Point -> Point -> [Point]
 -- should only have either 2 or 0, just think about it...

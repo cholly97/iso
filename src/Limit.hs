@@ -5,38 +5,46 @@ import           Geom
 import           Data.Maybe
 import           Data.Monoid
 import           Control.Monad
-import qualified Data.Set                      as Set
+import qualified Data.Map.Strict               as Map
 import           Control.Lens
 import           Graphics.Gloss
 
+type LineStore = Map.Map Float (Point, Point)
+
 data Limit
-  = Infinite {angle :: Float, normal :: Vector, _lineStore :: Set.Set Float}
-  | Finite {point :: Point, _lineStore :: Set.Set Float}
+  = Infinite {angle :: Float, normal :: Vector, _lineStore :: LineStore}
+  | Finite {point :: Point, _lineStore :: LineStore}
 
 $(makeLenses ''Limit)
 
-lineFunc :: Bounds -> Limit -> Float -> Picture
-lineFunc b (Infinite a v _) = lineAND b a v
-lineFunc b (Finite p _    ) = linePA b p
+lookupNearest :: Point -> Limit -> [(Point, Point)]
+lookupNearest p =
+  (snd <$>)
+    . catMaybes
+    . (lookupNearestFunc <*> fst . pointToLineRep p <*> _lineStore)
 
-lookupNearest :: Point -> Limit -> [Float]
-lookupNearest p = lookupNearestFunc <*> pointToLineRep p <*> _lineStore
 
-lookupNearestFunc :: Limit -> Float -> Set.Set Float -> [Float]
+lookupNearestFunc
+  :: Limit -> Float -> LineStore -> [Maybe (Float, (Point, Point))]
 lookupNearestFunc (Infinite _ _ _) = lookupLGE
 lookupNearestFunc (Finite _ _    ) = lookupLGECircular
 
-lookupLGE :: Float -> Set.Set Float -> [Float]
-lookupLGE k s = catMaybes $ [Set.lookupLE, Set.lookupGE] <*> [k] <*> [s]
+lookupLGE :: Float -> LineStore -> [Maybe (Float, (Point, Point))]
+lookupLGE k s = [Map.lookupLE, Map.lookupGE] <*> [k] <*> [s]
 
-lookupLGECircular :: Float -> Set.Set Float -> [Float]
+lookupLGECircular :: Float -> LineStore -> [Maybe (Float, (Point, Point))]
 lookupLGECircular k s =
-  catMaybes
-    $   [getFirst . mconcat . map First]
-    <*> (   [(<*> [s])]
-        <*> [[Set.lookupLE k, Set.lookupMax], [Set.lookupGE k, Set.lookupMin]]
+  getFirst
+    .   mconcat
+    .   map First
+    <$> (   [(<*> [s])]
+        <*> [[Map.lookupLE k, Map.lookupMax], [Map.lookupGE k, Map.lookupMin]]
         )
 
-pointToLineRep :: Point -> Limit -> Float
-pointToLineRep q (Infinite _ v _) = projectVV q v
-pointToLineRep q (Finite p _    ) = anglePP q p
+
+pointToLineRep :: Point -> Limit -> (Float, (Point, Point))
+pointToLineRep q (Infinite a v _) = (projectVV q v, (q, pointPA q a))
+pointToLineRep q (Finite p _    ) = (anglePP q p, (q, p))
+
+addLine :: Point -> Limit -> Limit
+addLine q l = (lineStore %~ uncurry Map.insert (pointToLineRep q l)) l

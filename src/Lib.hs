@@ -7,7 +7,7 @@ import           Data.Maybe
 import           Control.Lens
 import           Control.Arrow
 import           Control.Monad
-import qualified Data.Set                      as Set
+import qualified Data.Map.Strict               as Map
 import           Graphics.Gloss
 import           Graphics.Gloss.Data.Vector
 import           Graphics.Gloss.Interface.IO.Game
@@ -34,9 +34,9 @@ initWorld = World
   , _mousePosition = (0, 0)
   , _grid          = Grid
                        { _spacing = 42.0
-                       , _limits = [ Infinite (pi / 2) (1, 0) Set.empty
-                                   , Finite (rotateV (-pi * 5 / 6) (400, 0)) Set.empty
-                                   , Finite (rotateV (-pi * 1 / 6) (400, 0)) Set.empty
+                       , _limits = [ Infinite (pi / 2) (1, 0) Map.empty
+                                   , Finite (rotateV (-pi * 5 / 6) (400, 0)) Map.empty
+                                   , Finite (rotateV (-pi * 1 / 6) (400, 0)) Map.empty
                                    ]
                        }
   }
@@ -64,11 +64,11 @@ drawPoint :: Point -> Picture
 drawPoint p = Color blue $ translateP p $ Circle 2
 
 drawGridLines :: Bounds -> Limit -> Picture
-drawGridLines b l = Pictures $ lineFunc b l <$> Set.toList (_lineStore l)
+drawGridLines b l = Pictures $ linePP b <$> snd <$> Map.toList (l ^. lineStore)
 
 drawClosestGridLines :: Point -> Bounds -> Limit -> Picture
 drawClosestGridLines p b l =
-  Pictures $ Color red . lineFunc b l <$> lookupNearest p l
+  Pictures $ Color red . linePP b <$> snd <$> lookupNearest p l
 
 handleInputs :: Event -> World -> IO World
 handleInputs (EventKey (MouseButton LeftButton) Down undefined p) =
@@ -78,9 +78,6 @@ handleInputs _               = return
 
 addGridPoint :: Point -> World -> World
 addGridPoint p = grid . limits %~ (addLine p <$>)
-
-addLine :: Point -> Limit -> Limit
-addLine q l = (lineStore %~ Set.insert (pointToLineRep q l)) l
 
 timeUpdate :: Float -> World -> IO World
 timeUpdate dt world = do
