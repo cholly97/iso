@@ -2,6 +2,8 @@
 module Limit where
 
 import           Geom
+import           Data.Function
+import           Data.List                      ( minimumBy )
 import           Data.Maybe
 import           Data.Monoid
 import           Control.Monad
@@ -23,7 +25,6 @@ lookupNearest p =
     . catMaybes
     . (lookupNearestFunc <*> fst . pointToLineRep p <*> _lineStore)
 
-
 lookupNearestFunc
   :: Limit -> Float -> LineStore -> [Maybe (Float, (Point, Point))]
 lookupNearestFunc (Infinite _ _ _) = lookupLGE
@@ -41,6 +42,19 @@ lookupLGECircular k s =
         <*> [[Map.lookupLE k, Map.lookupMax], [Map.lookupGE k, Map.lookupMin]]
         )
 
+getClosestIntersection :: Point -> [Limit] -> Maybe Point
+getClosestIntersection p ls =
+  getClosest p . concat $ uncurry intersectLinesLines <$> linesVsLiness
+ where
+  nearestLiness :: [[(Point, Point)]]
+  nearestLiness = lookupNearest p <$> ls
+  nearestLinesSuffs :: [[[(Point, Point)]]]
+  nearestLinesSuffs = scanr (:) [] nearestLiness
+  linesVsLiness :: [([(Point, Point)], [(Point, Point)])]
+  linesVsLiness = over _2 concat <$> mapMaybe uncons nearestLinesSuffs
+
+getClosest _ [] = Nothing
+getClosest p qs = Just $ minimumBy (compare `on` dist p) qs
 
 pointToLineRep :: Point -> Limit -> (Float, (Point, Point))
 pointToLineRep q (Infinite a v _) = (projectVV q v, (q, pointPA q a))
