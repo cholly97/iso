@@ -1,6 +1,7 @@
 module Main where
 
 import           Lib
+
 import           Graphics.Gloss.Interface.IO.Game
 
 main :: IO ()

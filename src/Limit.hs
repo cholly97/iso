@@ -2,14 +2,16 @@
 module Limit where
 
 import           Geom
+
+import           Control.Lens
+import           Control.Monad
 import           Data.Function
 import           Data.List                      ( minimumBy )
+import qualified Data.Map.Strict               as Map
 import           Data.Maybe
 import           Data.Monoid
-import           Control.Monad
-import qualified Data.Map.Strict               as Map
-import           Control.Lens
 import           Graphics.Gloss
+import           Graphics.Gloss.Data.Vector
 
 type LineStore = Map.Map Float (Point, Point)
 
@@ -18,6 +20,12 @@ data Limit
   | Finite {point :: Point, _lineStore :: LineStore}
 
 $(makeLenses ''Limit)
+
+newInfiniteLimit :: Float -> Limit
+newInfiniteLimit a = Infinite a (unitVectorAtAngle (a + pi / 2)) Map.empty
+
+newFiniteLimit :: Float -> Float -> Limit
+newFiniteLimit a d = Finite (rotateV a (d, 0)) Map.empty
 
 lookupNearest :: Point -> Limit -> [(Point, Point)]
 lookupNearest p =

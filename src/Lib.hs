@@ -3,15 +3,15 @@ module Lib where
 
 import           Geom
 import           Limit
-import           Data.Maybe
-import           Control.Lens
+
 import           Control.Arrow
+import           Control.Lens
 import           Control.Monad
 import qualified Data.Map.Strict               as Map
+import           Data.Maybe
 import           Graphics.Gloss
-import           Graphics.Gloss.Data.Vector
-import           Graphics.Gloss.Interface.IO.Game
 import           Graphics.Gloss.Interface.Environment
+import           Graphics.Gloss.Interface.IO.Game
 
 data Grid = Grid
   { _spacing :: Float
@@ -22,8 +22,8 @@ $(makeLenses ''Grid)
 
 data World = World
   { _bounds :: Maybe Bounds
-  , _mousePosition :: Point
-  , _closestIntersection :: Point
+  , _mousePos :: Point
+  , _snapPoint :: Point
   , _grid :: Grid
   }
 
@@ -31,28 +31,30 @@ $(makeLenses ''World)
 
 initWorld :: World
 initWorld = World
-  { _bounds              = Nothing
-  , _mousePosition       = (0, 0)
-  , _closestIntersection = (0, 0)
-  , _grid                = Grid
-                             { _spacing = 42.0
-                             , _limits = [ Infinite (pi / 2) (1, 0) Map.empty
-                                         , Finite (rotateV (-pi * 5 / 6) (400, 0)) Map.empty
-                                         , Finite (rotateV (-pi * 1 / 6) (400, 0)) Map.empty
-                                         ]
-                             }
+  { _bounds    = Nothing
+  , _mousePos  = (0, 0)
+  , _snapPoint = (0, 0)
+  , _grid      = Grid
+                   { _spacing = 42.0
+                   , _limits  = [ newInfiniteLimit (pi / 2)
+                                , newFiniteLimit (-pi * 5 / 6) 400
+                                , newFiniteLimit (-pi * 1 / 6) 400
+                                ]
+                   }
   }
 
 displayWorld :: World -> IO Picture
-displayWorld = return . Pictures . ap ((:) . Circle . _spacing . _grid)
-                                      (([drawGrid] <*>) . pure)
+displayWorld = return . Pictures . ([drawSpacing, drawGrid] <*>) . pure
+
+drawSpacing :: World -> Picture
+drawSpacing = Circle . _spacing . _grid
 
 drawGrid :: World -> Picture
 drawGrid world =
   Pictures
-    $ (drawPoint $ world ^. closestIntersection)
+    $ (drawPoint $ world ^. snapPoint)
     : (   [ drawLimitPoints
-          , drawGridLines . fromMaybe (0, 0, 0, 0) $ world ^. bounds
+          , fromMaybe Blank . (drawGridLines <$> world ^. bounds ??)
           ]
       <*> world
       ^.  grid
@@ -73,9 +75,9 @@ handleInputs :: Event -> World -> IO World
 handleInputs (EventKey (MouseButton LeftButton) Down m p) =
   return . (addGridPoint =<< pointFunc m)
  where
-  pointFunc Modifiers { shift = Down } = view closestIntersection
+  pointFunc Modifiers { shift = Down } = view snapPoint
   pointFunc _                          = const p
-handleInputs (EventMotion p) = return . set mousePosition p
+handleInputs (EventMotion p) = return . set mousePos p
 handleInputs _               = return
 
 addGridPoint :: Point -> World -> World
@@ -85,10 +87,8 @@ timeUpdate :: Float -> World -> IO World
 timeUpdate dt = initializeWorld >=> return . setClosestIntersection
 
 setClosestIntersection :: World -> World
-setClosestIntersection =
-  set closestIntersection =<< fromMaybe . (^. closestIntersection) <*> f
- where
-  f = getClosestIntersection <$> (^. mousePosition) <*> (^. grid . limits)
+setClosestIntersection = set snapPoint =<< fromMaybe . (^. snapPoint) <*> f
+  where f = getClosestIntersection <$> (^. mousePos) <*> (^. grid . limits)
 
 initializeWorld :: World -> IO World
 initializeWorld world = if _bounds world == Nothing
