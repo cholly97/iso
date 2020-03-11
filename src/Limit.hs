@@ -3,6 +3,7 @@ module Limit where
 
 import           Geom
 
+import           Control.Arrow
 import           Control.Lens
 import           Control.Monad
 import           Data.Function
@@ -29,9 +30,12 @@ newFiniteLimit a d = Finite (rotateV a (d, 0)) Map.empty
 
 lookupNearest :: Point -> Limit -> [(Point, Point)]
 lookupNearest p =
-  (snd <$>)
-    . catMaybes
-    . (lookupNearestFunc <*> fst . pointToLineRep p <*> _lineStore)
+  lookupNearestFunc
+    <*> fst
+    .   pointToLineRep p
+    <*> _lineStore
+    >>> fmap snd
+    .   catMaybes
 
 lookupNearestFunc
   :: Limit -> Float -> LineStore -> [Maybe (Float, (Point, Point))]
@@ -43,30 +47,25 @@ lookupLGE k s = [Map.lookupLE, Map.lookupGE] <*> [k] <*> [s]
 
 lookupLGECircular :: Float -> LineStore -> [Maybe (Float, (Point, Point))]
 lookupLGECircular k s =
-  getFirst
-    .   mconcat
-    .   map First
-    <$> (   [(<*> [s])]
-        <*> [[Map.lookupLE k, Map.lookupMax], [Map.lookupGE k, Map.lookupMin]]
-        )
+  firstMaybe
+    <$> (?? s)
+    <$> [[Map.lookupLE k, Map.lookupMax], [Map.lookupGE k, Map.lookupMin]]
+  where firstMaybe = getFirst . mconcat . fmap First
 
-getClosestIntersection :: Point -> [Limit] -> Maybe Point
-getClosestIntersection p ls =
-  getClosest p . concat $ uncurry intersectLinesLines <$> linesVsLiness
+calcSnapPoint :: Point -> [Limit] -> Maybe Point
+calcSnapPoint p ls = getClosest p $ points
  where
-  nearestLiness :: [[(Point, Point)]]
-  nearestLiness = lookupNearest p <$> ls
-  nearestLinesSuffs :: [[[(Point, Point)]]]
-  nearestLinesSuffs = scanr (:) [] nearestLiness
-  linesVsLiness :: [([(Point, Point)], [(Point, Point)])]
-  linesVsLiness = over _2 concat <$> mapMaybe uncons nearestLinesSuffs
+  liness      = lookupNearest p <$> ls
+  linesSuffs  = scanr (:) [] liness
+  linesLiness = over _2 concat <$> mapMaybe uncons linesSuffs
+  points      = concat $ uncurry intersectLinesLines <$> linesLiness
 
 getClosest _ [] = Nothing
-getClosest p qs = Just $ minimumBy (compare `on` dist p) qs
+getClosest p qs = Just . minimumBy (compare `on` dist p) $ qs
 
 pointToLineRep :: Point -> Limit -> (Float, (Point, Point))
 pointToLineRep q (Infinite a v _) = (projectVV q v, (q, pointPA q a))
 pointToLineRep q (Finite p _    ) = (anglePP q p, (q, p))
 
 addLine :: Point -> Limit -> Limit
-addLine q l = (lineStore %~ uncurry Map.insert (pointToLineRep q l)) l
+addLine q = over lineStore =<< uncurry Map.insert . pointToLineRep q
