@@ -13,8 +13,11 @@ import           Data.Maybe
 import           Data.Monoid
 import           Graphics.Gloss
 import           Graphics.Gloss.Data.Vector
+import           Graphics.Gloss.Geometry.Line
 
-type LineStore = Map.Map Float (Point, Point)
+type Line = (Point, Point)
+
+type LineStore = Map.Map Float Line
 
 data Limit
   = Infinite {angle :: Float, normal :: Vector, _lineStore :: LineStore}
@@ -37,31 +40,51 @@ lookupNearest p =
     >>> fmap snd
     .   catMaybes
 
-lookupNearestFunc
-  :: Limit -> Float -> LineStore -> [Maybe (Float, (Point, Point))]
+lookupNearestFunc :: Limit -> Float -> LineStore -> [Maybe (Float, Line)]
 lookupNearestFunc (Infinite _ _ _) = lookupLGE
 lookupNearestFunc (Finite _ _    ) = lookupLGECircular
 
-lookupLGE :: Float -> LineStore -> [Maybe (Float, (Point, Point))]
+lookupLGE :: Float -> LineStore -> [Maybe (Float, Line)]
 lookupLGE k s = [Map.lookupLE, Map.lookupGE] <*> [k] <*> [s]
 
-lookupLGECircular :: Float -> LineStore -> [Maybe (Float, (Point, Point))]
+lookupLGECircular :: Float -> LineStore -> [Maybe (Float, Line)]
 lookupLGECircular k s =
   firstMaybe
     <$> (?? s)
     <$> [[Map.lookupLE k, Map.lookupMax], [Map.lookupGE k, Map.lookupMin]]
   where firstMaybe = getFirst . mconcat . fmap First
 
-calcSnapPoint :: Point -> [Limit] -> Maybe Point
-calcSnapPoint p ls = getClosest p $ points
- where
-  liness      = lookupNearest p <$> ls
-  linesSuffs  = scanr (:) [] liness
-  linesLiness = over _2 concat <$> mapMaybe uncons linesSuffs
-  points      = concat $ uncurry intersectLinesLines <$> linesLiness
+data CompBy a b = CompBy {compFunc :: (a -> b), value :: a}
 
-getClosest _ [] = Nothing
-getClosest p qs = Just . minimumBy (compare `on` dist p) $ qs
+compByFunc
+  :: Ord b
+  => ((CompBy a b -> CompBy a b -> Ordering) -> [CompBy a b] -> CompBy a b)
+  -> [CompBy a b]
+  -> a
+compByFunc f = value . f (compare `on` compFunc <*> value)
+
+calcSnapPoint :: Point -> [Limit] -> Float -> Float -> Point
+calcSnapPoint p ls line intersect = compByFunc minimumBy points
+ where
+  liness :: [[Line]]
+  liness = lookupNearest p <$> ls
+
+  linePoints :: [Point]
+  linePoints = uncurry closestPointOnLine <$> concat liness <*> [p]
+
+  linesSuffs :: [[[Line]]]
+  linesSuffs = scanr (:) [] liness
+  linesLiness :: [([Line], [Line])]
+  linesLiness = over _2 concat <$> mapMaybe uncons linesSuffs
+  intersects :: [Point]
+  intersects = concat $ uncurry intersectLinesLines <$> linesLiness
+
+  points :: [CompBy Point Float]
+  points =
+    (CompBy (const 0)) p
+      : (  (CompBy ((subtract line) . dist p) <$> linePoints)
+        ++ (CompBy ((subtract intersect) . dist p) <$> intersects)
+        )
 
 pointToLineRep :: Point -> Limit -> (Float, (Point, Point))
 pointToLineRep q (Infinite a v _) = (projectVV q v, (q, pointPA q a))
