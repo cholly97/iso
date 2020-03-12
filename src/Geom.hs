@@ -1,5 +1,7 @@
 module Geom where
 
+import           Utils
+
 import           Data.Fixed
 import           Data.Maybe
 import           Graphics.Gloss
@@ -15,26 +17,26 @@ origin :: Point
 origin = (0, 0)
 
 dist :: Point -> Point -> Float
-dist p q = magV (p Pt.- q)
+dist = magV <-<< (Pt.-)
 
 projectVV :: Vector -> Vector -> Float
 projectVV = dotV
 
 anglePP :: Point -> Point -> Float
-anglePP p q = argV (p Pt.- q) `mod'` pi
+anglePP = mod' pi <-< argV <-<< (Pt.-)
 
 pointPA :: Point -> Float -> Point
-pointPA p a = (p Pt.+ unitVectorAtAngle a)
+pointPA = unitVectorAtAngle >-<> (Pt.+)
 
 translateP :: Point -> Picture -> Picture
 translateP = uncurry Translate
 
 linePP :: Bounds -> (Point, Point) -> Picture
-linePP b (p, q) = Line $ intersectEdgesLine b p q
+linePP = intersectEdgesLine >-> uncurry >>-> Line
 
 intersectLinesLines :: [(Point, Point)] -> [(Point, Point)] -> [Point]
 intersectLinesLines ls ls' =
-  catMaybes $ uncurry <$> (uncurry intersectLineLine <$> ls) <*> ls'
+  catMaybes $ uncurry <$> uncurry intersectLineLine <$> ls <*> ls'
 
 intersectLineSeg :: Point -> Point -> (Point, Point) -> Maybe Point
 intersectLineSeg p1 p2 (p3, p4) = intersectSegLine p3 p4 p1 p2

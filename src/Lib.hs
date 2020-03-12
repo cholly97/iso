@@ -3,8 +3,10 @@ module Lib where
 
 import           Geom
 import           Limit
+import           Utils
 
 import           Control.Arrow
+import           Control.Applicative
 import           Control.Lens
 import           Control.Monad
 import qualified Data.Map.Strict               as Map
@@ -12,11 +14,6 @@ import           Data.Maybe
 import           Graphics.Gloss
 import           Graphics.Gloss.Interface.Environment
 import           Graphics.Gloss.Interface.IO.Game
-
-data Stickiness = Stickiness
-  { _line      :: Float
-  , _intersect :: Float
-  }
 
 data Settings = Settings
   { _stickiness :: Stickiness
@@ -46,26 +43,26 @@ initWorld = World
   }
 
 displayWorld :: World -> IO Picture
-displayWorld = return . Pictures . ap [drawRanges, drawGrid] . pure
+displayWorld = flap [drawRanges, drawGrid] >-> Pictures >-> return
 
 drawRanges :: World -> Picture
 drawRanges =
-  translateP
-    .   _mousePos
-    <*> Pictures
-    .   fmap Circle
-    .   ap [_line, _intersect]
-    .   pure
-    .   _stickiness
-    .   _settings
+  _settings
+    >-> _stickiness
+    >-> flap [_line, _intersect]
+    >-> fmap Circle
+    >-> Pictures
+    -<  moveToMouse
+  where moveToMouse = _mousePos >-> translateP -< ap
 
 drawGrid :: World -> Picture
 drawGrid w =
   Pictures
-    $ (drawPoint $ w ^. snapPoint)
+    $ (drawPoint >- w ^. snapPoint)
     : ([drawLimitPoints, maybeDrawGridLines] <*> w ^. limits)
  where
-  maybeDrawGridLines = fromMaybe Blank . (drawGridLines <$> w ^. bounds ??)
+  maybeDrawGridLines =
+    flap <-< fmap drawGridLines >- w ^. bounds >-> fromMaybe Blank
 
 drawLimitPoints :: Limit -> Picture
 drawLimitPoints (Infinite _ _ _) = Blank
@@ -75,19 +72,18 @@ drawPoint :: Point -> Picture
 drawPoint p = Color blue . translateP p $ ThickCircle 2 4
 
 drawGridLines :: Bounds -> Limit -> Picture
-drawGridLines b = Pictures . (linePP b <$>) . Map.elems . view lineStore
+drawGridLines =
+--lim->ls            ls->[l]        p<-x<-([p]<-x)    [p]<-[l]<-b
+  view lineStore >-> Map.elems >-<> fmap Pictures <-< fmap <-< linePP
 
 handleInputs :: Event -> World -> IO World
 handleInputs (EventKey (MouseButton LeftButton) Down m p) =
-  return . (addGridPoint =<< pointFunc m)
+  pointFunc m >>= addGridPoint >-> return
  where
   pointFunc Modifiers { shift = Down } = view snapPoint
   pointFunc _                          = const p
 handleInputs (EventMotion p) = return . set mousePos p
 handleInputs _               = return
-
-addGridPoint :: Point -> World -> World
-addGridPoint p = limits %~ (addLine p <$>)
 
 timeUpdate :: Float -> World -> IO World
 timeUpdate dt = maybeInit >=> return . setSnapPoint
@@ -98,23 +94,25 @@ setSnapPoint =
     =<< calcSnapPoint
     <$> _mousePos
     <*> _limits
-    <*> _line
-    .   _stickiness
-    .   _settings
-    <*> _intersect
-    .   _stickiness
+    <*> _stickiness
     .   _settings
 
 maybeInit :: World -> IO World
-maybeInit w = if _bounds w == Nothing
-  then do
-    setBounds . addGridPoint origin $ w
-  else do
-    return w
+maybeInit =
+  addGridPoint origin
+    >-> setBounds
+    -<  maybe
+    <-< const
+    >-  return
+    <-< _bounds
+    -<  join
 
 setBounds :: World -> IO World
 setBounds world = do
   wh <- getScreenSize
   let (w, h) = join bimap fromIntegral $ wh
   let s      = Just (-w / 2, w / 2, -h / 2, h / 2)
-  return . set bounds s $ world
+  return <-< set bounds s >- world
+
+addGridPoint :: Point -> World -> World
+addGridPoint = addLine >-> fmap >-> over limits
