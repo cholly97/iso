@@ -27,6 +27,8 @@ infixl 4 <<$>>
 ffmap :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
 ffmap = (<<$>>)
 
+infixl 0 -:
+(-:) = flip ($)
 
 infixl 1 >-
 (>-) :: (a -> b) -> a -> b
