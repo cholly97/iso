@@ -2,6 +2,7 @@
 module Limit where
 
 import           Geom
+import           Utils
 
 import           Control.Arrow
 import           Control.Lens
@@ -14,6 +15,11 @@ import           Data.Monoid
 import           Graphics.Gloss
 import           Graphics.Gloss.Data.Vector
 import           Graphics.Gloss.Geometry.Line
+
+data Stickiness = Stickiness
+  { _line      :: Float
+  , _intersect :: Float
+  }
 
 type Line = (Point, Point)
 
@@ -31,14 +37,14 @@ newInfiniteLimit a = Infinite a (unitVectorAtAngle (a + pi / 2)) Map.empty
 newFiniteLimit :: Float -> Float -> Limit
 newFiniteLimit a d = Finite (rotateV a (d, 0)) Map.empty
 
-lookupNearest :: Point -> Limit -> [(Point, Point)]
+lookupNearest :: Point -> Limit -> [Line]
 lookupNearest p =
   lookupNearestFunc
     <*> fst
     .   pointToLineRep p
     <*> _lineStore
-    >>> fmap snd
-    .   catMaybes
+    >-> catMaybes
+    >-> fmap snd
 
 lookupNearestFunc :: Limit -> Float -> LineStore -> [Maybe (Float, Line)]
 lookupNearestFunc (Infinite _ _ _) = lookupLGE
@@ -50,21 +56,12 @@ lookupLGE k s = [Map.lookupLE, Map.lookupGE] <*> [k] <*> [s]
 lookupLGECircular :: Float -> LineStore -> [Maybe (Float, Line)]
 lookupLGECircular k s =
   firstMaybe
-    <$> (?? s)
+    <$> flip flap s
     <$> [[Map.lookupLE k, Map.lookupMax], [Map.lookupGE k, Map.lookupMin]]
-  where firstMaybe = getFirst . mconcat . fmap First
+  where firstMaybe = fmap First >-> mconcat >-> getFirst
 
-data CompBy a b = CompBy {compFunc :: (a -> b), value :: a}
-
-compByFunc
-  :: Ord b
-  => ((CompBy a b -> CompBy a b -> Ordering) -> [CompBy a b] -> CompBy a b)
-  -> [CompBy a b]
-  -> a
-compByFunc f = value . f (compare `on` compFunc <*> value)
-
-calcSnapPoint :: Point -> [Limit] -> Float -> Float -> Point
-calcSnapPoint p ls line intersect = compByFunc minimumBy points
+calcSnapPoint :: Point -> [Limit] -> Stickiness -> Point
+calcSnapPoint p ls stick = compByFunc minimumBy points
  where
   liness :: [[Line]]
   liness = lookupNearest p <$> ls
@@ -79,16 +76,19 @@ calcSnapPoint p ls line intersect = compByFunc minimumBy points
   intersects :: [Point]
   intersects = concat $ uncurry intersectLinesLines <$> linesLiness
 
+  mapOffset :: (Stickiness -> Float) -> [Point] -> [CompBy Point Float]
+  mapOffset setting = setting stick -< subtract <-< dist p -< map . CompBy
+
   points :: [CompBy Point Float]
   points =
-    (CompBy (const 0)) p
-      : (  (CompBy ((subtract line) . dist p) <$> linePoints)
-        ++ (CompBy ((subtract intersect) . dist p) <$> intersects)
-        )
+    CompBy (const 0) p
+      :  mapOffset _line      linePoints
+      ++ mapOffset _intersect intersects
 
-pointToLineRep :: Point -> Limit -> (Float, (Point, Point))
+pointToLineRep :: Point -> Limit -> (Float, Line)
 pointToLineRep q (Infinite a v _) = (projectVV q v, (q, pointPA q a))
 pointToLineRep q (Finite p _    ) = (anglePP q p, (q, p))
 
 addLine :: Point -> Limit -> Limit
-addLine q = over lineStore =<< uncurry Map.insert . pointToLineRep q
+--        p->lim->(f,l)       (f,l)->ls->ls           (ls->ls)->lim->lim
+addLine = pointToLineRep >>-> uncurry Map.insert >>=> over lineStore
