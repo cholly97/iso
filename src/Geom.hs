@@ -23,7 +23,7 @@ projectVV :: Vector -> Vector -> Float
 projectVV = dotV
 
 anglePP :: Point -> Point -> Float
-anglePP = mod' pi <-< argV <-<< (Pt.-)
+anglePP = flip mod' pi <-< argV <-<< (Pt.-)
 
 pointPA :: Point -> Float -> Point
 pointPA = unitVectorAtAngle >-<> (Pt.+)
