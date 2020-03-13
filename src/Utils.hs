@@ -9,16 +9,15 @@ data CompBy a b = CompBy {compFunc :: (a -> b), value :: a}
 
 compByFunc
   :: Ord b
-  => ((CompBy a b -> CompBy a b -> Ordering) -> [CompBy a b] -> CompBy a b)
-  -> [CompBy a b]
+  => ((CompBy a b -> CompBy a b -> Ordering) -> t (CompBy a b) -> CompBy a b)
+  -> t (CompBy a b)
   -> a
-
-compByFunc f = value . f (compare `on` compFunc <*> value)
+compByFunc = eval <-< on compare >- compFunc <*> value >>-> value
 
 ------------------------------ Combinators -------------------------------------
 
-flap :: Functor f => f (a -> b) -> a -> f b
-flap = (??)
+flap :: Applicative f => f (a -> b) -> a -> f b
+flap fab a = fab <*> pure a
 
 infixl 4 <<$>>
 (<<$>>) :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
@@ -30,6 +29,8 @@ ffmap = (<<$>>)
 infixl 0 -:
 (-:) = flip ($)
 
+eval = (-:)
+
 infixl 1 >-
 (>-) :: (a -> b) -> a -> b
 f >- x = f x
@@ -38,11 +39,19 @@ infixl 1 -<
 x -< f = f x
 
 
+infixl 1 -<>
+(-<>) :: b -> (a -> b -> c) -> a -> c
+(-<>) = flip flip
+infixl 1 <>-
+(<>-) :: (a -> b -> c) -> b -> a -> c
+(<>-) = flip
+
+
 infixl 1 >->
-(>->) :: (a -> b) -> (b -> c) -> (a -> c)
+(>->) :: (a -> b) -> (b -> c) -> a -> c
 (>->) = (>>>)
 infixl 1 <-<
-(<-<) :: (b -> c) -> (a -> b) -> (a -> c)
+(<-<) :: (b -> c) -> (a -> b) -> a -> c
 (<-<) = (<<<)
 
 

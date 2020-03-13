@@ -36,9 +36,9 @@ initWorld = World
   , _settings  = Settings
                    { _stickiness = Stickiness { _line = 10, _intersect = 20 }
                    }
-  , _limits    = [ newInfiniteLimit (pi / 2)
-                 , newFiniteLimit (-pi * 5 / 6) 400
-                 , newFiniteLimit (-pi * 1 / 6) 400
+  , _limits    = [ infiniteLimit (pi / 2)
+                 , finiteLimit (-pi * 5 / 6) 400
+                 , finiteLimit (-pi * 1 / 6) 400
                  ]
   }
 
@@ -77,12 +77,14 @@ drawGridLines =
   view lineStore >-> Map.elems >-<> fmap Pictures <-< fmap <-< linePP
 
 handleInputs :: Event -> World -> IO World
-handleInputs (EventKey (MouseButton LeftButton) Down m p) =
-  pointFunc m >>= addGridPoint >-> return
+handleInputs (EventKey (MouseButton button) Down m p) = do
+  pointFunc m >>= operation button >-> return
  where
+  operation LeftButton  = addGridPoint
+  operation RightButton = removeGridPoint
   pointFunc Modifiers { shift = Down } = view snapPoint
   pointFunc _                          = const p
-handleInputs (EventMotion p) = return . set mousePos p
+handleInputs (EventMotion p) = set mousePos p >-> return
 handleInputs _               = return
 
 timeUpdate :: Float -> World -> IO World
@@ -99,20 +101,20 @@ setSnapPoint =
 
 maybeInit :: World -> IO World
 maybeInit =
-  addGridPoint origin
-    >-> setBounds
-    -<  maybe
-    <-< const
-    >-  return
-    <-< _bounds
-    -<  join
+  addGridPoint origin >-> setBounds -< maybe >- const return <-< _bounds -< join
 
 setBounds :: World -> IO World
 setBounds world = do
   wh <- getScreenSize
   let (w, h) = join bimap fromIntegral $ wh
   let s      = Just (-w / 2, w / 2, -h / 2, h / 2)
-  return <-< set bounds s >- world
+  world -< set bounds s -< return
+
+modWorld :: ((Float, Line) -> LineStore -> LineStore) -> Point -> World -> World
+modWorld f = pointToLineRep >>-> f >>=> over lineStore >-> fmap >-> over limits
 
 addGridPoint :: Point -> World -> World
-addGridPoint = addLine >-> fmap >-> over limits
+addGridPoint = uncurry Map.insert -< modWorld
+
+removeGridPoint :: Point -> World -> World
+removeGridPoint = fst >-> Map.delete -< modWorld

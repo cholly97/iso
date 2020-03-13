@@ -31,11 +31,11 @@ data Limit
 
 $(makeLenses ''Limit)
 
-newInfiniteLimit :: Float -> Limit
-newInfiniteLimit a = Infinite a (unitVectorAtAngle (a + pi / 2)) Map.empty
+infiniteLimit :: Float -> Limit
+infiniteLimit a = Infinite a (unitVectorAtAngle (a + pi / 2)) Map.empty
 
-newFiniteLimit :: Float -> Float -> Limit
-newFiniteLimit a d = Finite (rotateV a (d, 0)) Map.empty
+finiteLimit :: Float -> Float -> Limit
+finiteLimit a d = Finite (rotateV a (d, 0)) Map.empty
 
 lookupNearest :: Point -> Limit -> [Line]
 lookupNearest p =
@@ -77,7 +77,7 @@ calcSnapPoint p ls stick = compByFunc minimumBy points
   intersects = concat $ uncurry intersectLinesLines <$> linesLiness
 
   mapOffset :: (Stickiness -> Float) -> [Point] -> [CompBy Point Float]
-  mapOffset setting = setting stick -< subtract <-< dist p -< map . CompBy
+  mapOffset = eval stick >-> subtract <>-< dist p >-> map . CompBy
 
   points :: [CompBy Point Float]
   points =
@@ -88,7 +88,3 @@ calcSnapPoint p ls stick = compByFunc minimumBy points
 pointToLineRep :: Point -> Limit -> (Float, Line)
 pointToLineRep q (Infinite a v _) = (projectVV q v, (q, pointPA q a))
 pointToLineRep q (Finite p _    ) = (anglePP q p, (q, p))
-
-addLine :: Point -> Limit -> Limit
---        p->lim->(f,l)       (f,l)->ls->ls           (ls->ls)->lim->lim
-addLine = pointToLineRep >>-> uncurry Map.insert >>=> over lineStore
