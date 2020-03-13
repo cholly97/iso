@@ -78,6 +78,8 @@ drawGridLines =
 
 handleInputs :: Event -> World -> IO World
 handleInputs (EventKey (MouseButton button) Down m p) = do
+  view limits >-> fmap _lineStore >-> show >-> putStrLn
+  pointFunc m >-> show >-> putStrLn
   pointFunc m >>= operation button >-> return
  where
   operation LeftButton  = addGridPoint
