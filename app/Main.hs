@@ -1,6 +1,8 @@
 module Main where
 
-import           Lib
+import           Display
+import           Input
+import           World
 
 import           Graphics.Gloss.Interface.IO.Game
 

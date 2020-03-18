@@ -1,21 +1,16 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Lib where
+module World where
 
 import           Geom
 import           Limit
 import           Utils
 
-import           Control.Arrow
-import           Control.Applicative
 import           Control.Conditional
 import           Control.Lens
 import           Control.Monad
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe
-import           Graphics.Gloss
 import           Graphics.Gloss.Interface.Environment
 import           Graphics.Gloss.Interface.IO.Game
-import           System.IO
 
 data Settings = Settings
   { _stickiness :: Stickiness
@@ -45,55 +40,6 @@ initWorld = World
                  , finiteLimit (-pi * 1 / 6) 400
                  ]
   }
-
-displayWorld :: World -> IO Picture
-displayWorld = flap [drawRanges, drawGrid] >-> Pictures >-> return
-
-drawRanges :: World -> Picture
-drawRanges =
-  _settings
-    >-> _stickiness
-    >-> flap [_line, _intersect]
-    >-> fmap Circle
-    >-> Pictures
-    -<  moveToMouse
-  where moveToMouse = _mousePos >-> translateP -< ap
-
-drawGrid :: World -> Picture
-drawGrid w =
-  Pictures
-    $ (drawPoint >- w ^. snapPoint)
-    : ([drawLimitPoints, maybeDrawGridLines] <*> w ^. limits)
- where
-  maybeDrawGridLines =
-    flap <-< fmap drawGridLines >- w ^. bounds >-> fromMaybe Blank
-
-drawLimitPoints :: Limit -> Picture
-drawLimitPoints (Infinite _ _ _) = Blank
-drawLimitPoints (Finite p _    ) = drawPoint p
-
-drawPoint :: Point -> Picture
-drawPoint p = Color blue . translateP p $ ThickCircle 2 4
-
-drawGridLines :: Bounds -> Limit -> Picture
-drawGridLines =
---lim->ls            ls->[l]        p<-x<-([p]<-x)    [p]<-[l]<-b
-  view lineStore >-> Map.elems >-<> fmap Pictures <-< fmap <-< linePP
-
-handleInputs :: Event -> World -> IO World
-handleInputs (EventKey (MouseButton button) Down m p) = do
-  view limits >-> fmap _lineStore >-> length >-> show >-> putStrLn
-  pointFunc m >-> show >-> putStrLn
-  pointFunc m >>= operation button >-> return
- where
-  operation LeftButton  = addGridPoint
-  operation RightButton = removeGridPoint
-  pointFunc Modifiers { shift = Down } = view snapPoint
-  pointFunc _                          = const p
-handleInputs (EventKey (SpecialKey KeyShiftL) s _ _) =
-  s == Down -< set snapState >-> return
-handleInputs (EventMotion p) = set mousePos p >-> return
-handleInputs _               = return
 
 timeUpdate :: Float -> World -> IO World
 timeUpdate dt = maybeInit >=> return . setSnapPoint
