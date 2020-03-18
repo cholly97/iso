@@ -60,8 +60,8 @@ lookupLGECircular k s =
     <$> [[Map.lookupLE k, Map.lookupMax], [Map.lookupGE k, Map.lookupMin]]
   where firstMaybe = fmap First >-> mconcat >-> getFirst
 
-calcSnapPoint :: Point -> [Limit] -> Stickiness -> Point
-calcSnapPoint p ls stick = compByFunc minimumBy points
+snap :: Point -> [Limit] -> Stickiness -> Point
+snap p ls stick = compByFunc minimumBy points
  where
   liness :: [[Line]]
   liness = lookupNearest p <$> ls

@@ -24,6 +24,7 @@ dependencies:
 - gloss
 - lens
 - containers
+- cond
 
 library:
   source-dirs: src

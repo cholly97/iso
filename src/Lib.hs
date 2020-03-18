@@ -7,6 +7,7 @@ import           Utils
 
 import           Control.Arrow
 import           Control.Applicative
+import           Control.Conditional
 import           Control.Lens
 import           Control.Monad
 import qualified Data.Map.Strict               as Map
@@ -14,6 +15,7 @@ import           Data.Maybe
 import           Graphics.Gloss
 import           Graphics.Gloss.Interface.Environment
 import           Graphics.Gloss.Interface.IO.Game
+import           System.IO
 
 data Settings = Settings
   { _stickiness :: Stickiness
@@ -23,6 +25,7 @@ data World = World
   { _bounds    :: Maybe Bounds
   , _mousePos  :: Point
   , _snapPoint :: Point
+  , _snapState :: Bool
   , _settings  :: Settings
   , _limits    :: [Limit]
   }
@@ -33,6 +36,7 @@ initWorld = World
   { _bounds    = Nothing
   , _mousePos  = (0, 0)
   , _snapPoint = (0, 0)
+  , _snapState = False
   , _settings  = Settings
                    { _stickiness = Stickiness { _line = 10, _intersect = 20 }
                    }
@@ -78,7 +82,7 @@ drawGridLines =
 
 handleInputs :: Event -> World -> IO World
 handleInputs (EventKey (MouseButton button) Down m p) = do
-  view limits >-> fmap _lineStore >-> show >-> putStrLn
+  view limits >-> fmap _lineStore >-> length >-> show >-> putStrLn
   pointFunc m >-> show >-> putStrLn
   pointFunc m >>= operation button >-> return
  where
@@ -86,6 +90,8 @@ handleInputs (EventKey (MouseButton button) Down m p) = do
   operation RightButton = removeGridPoint
   pointFunc Modifiers { shift = Down } = view snapPoint
   pointFunc _                          = const p
+handleInputs (EventKey (SpecialKey KeyShiftL) s _ _) =
+  s == Down -< set snapState >-> return
 handleInputs (EventMotion p) = set mousePos p >-> return
 handleInputs _               = return
 
@@ -94,23 +100,19 @@ timeUpdate dt = maybeInit >=> return . setSnapPoint
 
 setSnapPoint :: World -> World
 setSnapPoint =
-  set snapPoint
-    =<< calcSnapPoint
-    <$> _mousePos
-    <*> _limits
-    <*> _stickiness
-    .   _settings
+  return if' <*> _snapState <*> getSnapPoint <*> _mousePos >>= set snapPoint
+ where
+  getSnapPoint = snap <$> _mousePos <*> _limits <*> _stickiness . _settings
 
 maybeInit :: World -> IO World
-maybeInit =
-  addGridPoint origin >-> setBounds -< maybe >- const return <-< _bounds -< join
+maybeInit = doInit -< maybe >- const return <-< _bounds -< join
 
-setBounds :: World -> IO World
-setBounds world = do
+doInit :: World -> IO World
+doInit world = do
   wh <- getScreenSize
   let (w, h) = join bimap fromIntegral $ wh
   let s      = Just (-w / 2, w / 2, -h / 2, h / 2)
-  world -< set bounds s -< return
+  world -< set bounds s -< addGridPoint origin -< return
 
 modWorld :: ((Float, Line) -> LineStore -> LineStore) -> Point -> World -> World
 modWorld f = pointToLineRep >>-> f >>=> over lineStore >-> fmap >-> over limits
