@@ -17,22 +17,22 @@ origin :: Point
 origin = (0, 0)
 
 dist :: Point -> Point -> Float
-dist = magV <-<< (Pt.-)
+dist = magV <--<< (Pt.-)
 
 projectVV :: Vector -> Vector -> Float
 projectVV = dotV
 
 anglePP :: Point -> Point -> Float
-anglePP = flip mod' pi <-< argV <-<< (Pt.-)
+anglePP = flip mod' pi <-< argV <--<< (Pt.-)
 
 pointPA :: Point -> Float -> Point
-pointPA = unitVectorAtAngle >-<> (Pt.+)
+pointPA = unitVectorAtAngle >--<> (Pt.+)
 
 translateP :: Point -> Picture -> Picture
 translateP = uncurry Translate
 
 linePP :: Bounds -> (Point, Point) -> Picture
-linePP = intersectEdgesLine >-> uncurry >>-> Line
+linePP = intersectEdgesLine >-> uncurry >>--> Line
 
 intersectLinesLines :: [(Point, Point)] -> [(Point, Point)] -> [Point]
 intersectLinesLines ls ls' =

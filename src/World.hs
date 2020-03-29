@@ -5,7 +5,7 @@ import           Geom
 import           Limit
 import           Utils
 
-import           Control.Conditional
+import           Control.Conditional            ( if' )
 import           Control.Lens
 import           Control.Monad
 import qualified Data.Map.Strict               as Map
@@ -47,24 +47,27 @@ timeUpdate dt = maybeInit >=> return . setSnapPoint
 setSnapPoint :: World -> World
 setSnapPoint =
   return if' <*> _snapState <*> getSnapPoint <*> _mousePos >>= set snapPoint
- where
-  getSnapPoint = snap <$> _mousePos <*> _limits <*> _stickiness . _settings
+
+getSnapPoint :: World -> Point
+getSnapPoint = snap <$> _mousePos <*> _limits <*> _stickiness . _settings
 
 maybeInit :: World -> IO World
 maybeInit = doInit -< maybe >- const return <-< _bounds -< join
 
 doInit :: World -> IO World
-doInit world = do
-  wh <- getScreenSize
-  let (w, h) = join bimap fromIntegral $ wh
-  let s      = Just (-w / 2, w / 2, -h / 2, h / 2)
-  world -< set bounds s -< addGridPoint origin -< return
+doInit w = getScreenSize >>= return . toBound . join bimap fromIntegral >>= fin
+ where
+  toBound (w, h) = Just (-w / 2, w / 2, -h / 2, h / 2)
+  fin = set bounds ?? w >-> addGridPoint origin >-> return
 
 modWorld :: ((Float, Line) -> LineStore -> LineStore) -> Point -> World -> World
-modWorld f = pointToLineRep >>-> f >>=> over lineStore >-> fmap >-> over limits
+-- modWorld f p w = over limits ?? w $ fmap g
+  -- where g = over lineStore =<< f . pointToLineRep p
+modWorld f =
+  pointToLineRep >>--> f >>=> over lineStore >-> fmap >-> over limits
 
 addGridPoint :: Point -> World -> World
-addGridPoint = uncurry Map.insert -< modWorld
+addGridPoint = fuzzyInsert -< modWorld
 
 removeGridPoint :: Point -> World -> World
-removeGridPoint = fst >-> Map.delete -< modWorld
+removeGridPoint = fst >-> fuzzyDelete -< modWorld

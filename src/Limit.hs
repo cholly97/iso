@@ -56,7 +56,7 @@ lookupLGE k s = [Map.lookupLE, Map.lookupGE] <*> [k] <*> [s]
 lookupLGECircular :: Float -> LineStore -> [Maybe (Float, Line)]
 lookupLGECircular k s =
   firstMaybe
-    <$> flip flap s
+    <$> palf s
     <$> [[Map.lookupLE k, Map.lookupMax], [Map.lookupGE k, Map.lookupMin]]
   where firstMaybe = fmap First >-> mconcat >-> getFirst
 
@@ -77,7 +77,8 @@ snap p ls stick = compByFunc minimumBy points
   intersects = concat $ uncurry intersectLinesLines <$> linesLiness
 
   mapOffset :: (Stickiness -> Float) -> [Point] -> [CompBy Point Float]
-  mapOffset = eval stick >-> subtract <>-< dist p >-> map . CompBy
+  -- mapOffset sett = map . CompBy $ \q -> dist p q - sett stick
+  mapOffset = eval stick >-> subtract <>--< dist p >-> map . CompBy
 
   points :: [CompBy Point Float]
   points =
@@ -88,3 +89,20 @@ snap p ls stick = compByFunc minimumBy points
 pointToLineRep :: Point -> Limit -> (Float, Line)
 pointToLineRep q (Infinite a v _) = (projectVV q v, (q, pointPA q a))
 pointToLineRep q (Finite p _    ) = (anglePP q p, (q, p))
+
+fuzzyInsert :: (Float, Line) -> LineStore -> LineStore
+fuzzyInsert (f, l) ls = case fuzzyLookup f ls of
+  Nothing -> uncurry Map.insert (f, l) ls
+  Just _  -> ls
+
+fuzzyDelete :: Float -> LineStore -> LineStore
+fuzzyDelete f ls =
+  Map.delete <$> fst <$> fuzzyLookup f ls ?? ls -< fromMaybe ls
+-- fuzzyDelete =
+--   fst >-> Map.delete -< fmap <--<< fuzzyLookup >>=> flap >-> ap fromMaybe
+
+fuzzyLookup :: Float -> LineStore -> Maybe (Float, Line)
+fuzzyLookup f = (nothingIf cond =<<) <$> Map.lookupLE (f + tolerance)
+ where
+  cond      = (< f - tolerance) . fst
+  tolerance = 0.001

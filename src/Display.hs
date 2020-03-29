@@ -42,5 +42,5 @@ drawPoint p = Color blue . translateP p $ ThickCircle 2 4
 
 drawGridLines :: Bounds -> Limit -> Picture
 drawGridLines =
---lim->ls            ls->[l]        p<-x<-([p]<-x)    [p]<-[l]<-b
-  view lineStore >-> Map.elems >-<> fmap Pictures <-< fmap <-< linePP
+--lim->ls            ls->[l]         p<-x<-([p]<-x)    [p]<-[l]<-b
+  view lineStore >-> Map.elems >--<> fmap Pictures <-< fmap <-< linePP
