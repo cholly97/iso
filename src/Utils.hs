@@ -1,7 +1,6 @@
 module Utils where
 
 import           Control.Applicative
-import           Control.Arrow
 import           Control.Lens
 import           Control.Monad
 import           Data.Function
@@ -22,13 +21,20 @@ compByFunc
 compByFunc = eval <-< on compare >- compFunc <*> value >>--> value
 
 -------------------------------- Combinators -----------------------------------
-infixl 0 =>>
-(=>>) :: (Monad a, Monad m) => a (m b) -> a (m c) -> a (m c)
-(=>>) = liftM2 (>>)
+infixl 0 >>>
+(>>>) :: (Monad m0, Monad m1) => m1 (m0 a) -> m1 (m0 b) -> m1 (m0 b)
+(>>>) = liftM2 (>>)
+infixl 0 >>>>
+(>>>>)
+  :: (Monad m0, Monad m1, Monad m2)
+  => m2 (m1 (m0 a))
+  -> m2 (m1 (m0 b))
+  -> m2 (m1 (m0 b))
+(>>>>) = liftM2 (>>>)
 
-infixl 0 =>>=
-(=>>=) :: (Monad a, Monad m) => a (m b) -> a (b -> m c) -> a (m c)
-(=>>=) = liftM2 (>>=)
+infixl 0 >>>=
+(>>>=) :: (Monad a, Monad m) => a (m b) -> a (b -> m c) -> a (m c)
+(>>>=) = liftM2 (>>=)
 
 pamf :: Functor f => f a -> (a -> b) -> f b
 pamf = flip fmap
