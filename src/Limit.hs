@@ -44,8 +44,8 @@ lookupNearest p = snd <--<< catMaybes <-< maybeLookup
   maybeLookup = lookupNearestFunc <*> fst . pointToLineRep p <*> _lineStore
 
 lookupNearestFunc :: Limit -> Float -> LineStore -> [Maybe (Float, Line)]
-lookupNearestFunc (Infinite _ _ _) = lookupLGE
-lookupNearestFunc (Finite _ _    ) = lookupLGECircular
+lookupNearestFunc Infinite{} = lookupLGE
+lookupNearestFunc Finite{}   = lookupLGECircular
 
 lookupLGE :: Float -> LineStore -> [Maybe (Float, Line)]
 lookupLGE k s = [Map.lookupLE, Map.lookupGE] <*> [k] <*> [s]
@@ -95,8 +95,7 @@ fuzzyInsert (f, l) ls = case fuzzyLookup f ls of
   Just _  -> ls
 
 fuzzyDelete :: Float -> LineStore -> LineStore
-fuzzyDelete f ls =
-  Map.delete <$> fst <$> fuzzyLookup f ls ?? ls -< fromMaybe ls
+fuzzyDelete f ls = Map.delete . fst <$> fuzzyLookup f ls ?? ls -< fromMaybe ls
 -- fuzzyDelete =
   -- fst >-> Map.delete -< fmap <--<< fuzzyLookup >>=> flap >-> ap fromMaybe
 

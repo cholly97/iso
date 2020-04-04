@@ -11,7 +11,7 @@ nothingIf f a = if f a then Nothing else Just a
 
 -------------------------------- Comparison ------------------------------------
 
-data CompBy a b = CompBy {compFunc :: (a -> b), value :: a}
+data CompBy a b = CompBy {compFunc :: a -> b, value :: a}
 
 compByFunc
   :: Ord b
@@ -69,7 +69,7 @@ infixl 1 <>-
 
 -- generalized . (3 types)
 infixl 1 >->
-(>->) :: Functor a => (a b) -> (b -> c) -> a c
+(>->) :: Functor a => a b -> (b -> c) -> a c
 (>->) = flip (<-<)
 infixl 1 <-<
 (<-<) :: Functor a => (b -> c) -> a b -> a c
@@ -126,10 +126,10 @@ infixl 1 >-~<>
 (>-~<>) = flip (<>~-<)
 -- special case where contravariant c is (flip (->) c')
 infixl 1 <>-<
-(<>-<) :: Functor a => (b -> x) -> ((a x) -> c) -> (a b) -> c
+(<>-<) :: Functor a => (b -> x) -> (a x -> c) -> a b -> c
 (<>-<) = (<-<) >-> (>->)
 infixl 1 >-<>
-(>-<>) :: Functor a => ((a x) -> c) -> (b -> x) -> (a b) -> c
+(>-<>) :: Functor a => (a x -> c) -> (b -> x) -> a b -> c
 (>-<>) = flip (<>-<)
 
 -- generalized (.).(.) (4 types)

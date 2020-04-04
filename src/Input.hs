@@ -32,7 +32,7 @@ handleInputs (EventKey (MouseButton button) Down m p) =
         <--<< view limits
   operation LeftButton  = addGridPoint
   operation RightButton = removeGridPoint
-  operation _           = \_ -> id
+  operation _           = const id
   pointFunc Modifiers { shift = Down } = view snapPoint
   pointFunc _                          = const p
 handleInputs (EventKey (SpecialKey KeyShiftL) s _ _) =

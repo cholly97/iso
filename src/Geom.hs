@@ -36,7 +36,7 @@ linePP = intersectEdgesLine >-> uncurry >>--> Line
 
 intersectLinesLines :: [(Point, Point)] -> [(Point, Point)] -> [Point]
 intersectLinesLines ls ls' =
-  catMaybes $ uncurry <$> uncurry intersectLineLine <$> ls <*> ls'
+  catMaybes $ uncurry . uncurry intersectLineLine <$> ls <*> ls'
 
 intersectLineSeg :: Point -> Point -> (Point, Point) -> Maybe Point
 intersectLineSeg p1 p2 (p3, p4) = intersectSegLine p3 p4 p1 p2

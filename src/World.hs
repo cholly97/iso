@@ -46,7 +46,7 @@ timeUpdate dt = maybeInit >=> return . setSnapPoint
 
 setSnapPoint :: World -> World
 setSnapPoint =
-  return if' <*> _snapState <*> getSnapPoint <*> _mousePos >>= set snapPoint
+  if' <$> _snapState <*> getSnapPoint <*> _mousePos >>= set snapPoint
 
 getSnapPoint :: World -> Point
 getSnapPoint = snap <$> _mousePos <*> _limits <*> _stickiness . _settings
@@ -55,7 +55,7 @@ maybeInit :: World -> IO World
 maybeInit = doInit -< maybe >- const return <-< _bounds -< join
 
 doInit :: World -> IO World
-doInit w = getScreenSize >>= return . toBound . join bimap fromIntegral >>= fin
+doInit w = getScreenSize >-> toBound . join bimap fromIntegral >>= fin
  where
   toBound (w, h) = Just (-w / 2, w / 2, -h / 2, h / 2)
   fin = set bounds ?? w >-> addGridPoint origin >-> return
