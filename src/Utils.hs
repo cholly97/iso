@@ -9,7 +9,7 @@ import           Data.Functor.Contravariant
 nothingIf :: (a -> Bool) -> a -> Maybe a
 nothingIf f a = if f a then Nothing else Just a
 
--------------------------------- Comparison ------------------------------------
+-------------------------------- Comparison ------------------------------------
 
 data CompBy a b = CompBy {compFunc :: (a -> b), value :: a}
 
@@ -20,7 +20,7 @@ compByFunc
   -> a
 compByFunc = eval <-< on compare >- compFunc <*> value >>--> value
 
--------------------------------- Combinators -----------------------------------
+-------------------------------- Combinators -----------------------------------
 infixl 0 >>>
 (>>>) :: (Monad m0, Monad m1) => m1 (m0 a) -> m1 (m0 b) -> m1 (m0 b)
 (>>>) = liftM2 (>>)
@@ -50,7 +50,7 @@ infixl 0 -:
 eval = (-:)
 
 
--- generalized $ (2 types)
+-- generalized $ (2 types)
 infixl 1 -<
 (-<) :: a -> (a -> b) -> b
 (-<) = flip (>-)
@@ -59,7 +59,7 @@ infixl 1 >-
 (>-) = id
 
 
--- generalized flip (3 types)
+-- generalized flip (3 types)
 infixl 1 -<>
 (-<>) :: Functor a => b -> a (b -> c) -> a c
 (-<>) = flip (<>-)
@@ -67,7 +67,7 @@ infixl 1 <>-
 (<>-) :: Functor a => a (b -> c) -> b -> a c
 (<>-) = flap
 
--- generalized . (3 types)
+-- generalized . (3 types)
 infixl 1 >->
 (>->) :: Functor a => (a b) -> (b -> c) -> a c
 (>->) = flip (<-<)
@@ -95,8 +95,8 @@ infixl 1 -<<
 (-<<) = flip (>>-)
 
 
--- generalized (.).flip(.) (4 types)
--- (b -> x) -> (a -> x -> c) -> a -> b -> c
+-- generalized (.).flip(.) (4 types)
+-- (b -> x) -> (a -> x -> c) -> a -> b -> c
 infixl 1 >--<>
 (>--<>) :: (Functor a, Functor b) => b x -> a (x -> c) -> a (b c)
 (>--<>) = (>->) >-> (<-<)
@@ -110,8 +110,8 @@ infixl 1 <>-~<
 (<>-~<) :: (Contravariant c, Functor a) => a (c x) -> (b -> x) -> a (c b)
 (<>-~<) = flip (>~-<>)
 
--- generalized flip(.).(.) (4 types)
--- (b -> x) -> ((a -> x) -> c) -> (a -> b) -> c
+-- generalized flip(.).(.) (4 types)
+-- (b -> x) -> ((a -> x) -> c) -> (a -> b) -> c
 infixl 1 <>~~<
 (<>~~<) :: (Contravariant c, Contravariant x) => x b -> c (x a) -> c (a -> b)
 (<>~~<) = (<~<) >-> (>~>)
@@ -124,7 +124,7 @@ infixl 1 >~~<>
 infixl 1 >-~<>
 (>-~<>) :: (Functor a, Contravariant c) => c (a x) -> (b -> x) -> c (a b)
 (>-~<>) = flip (<>~-<)
--- special case where contravariant c is (flip (->) c')
+-- special case where contravariant c is (flip (->) c')
 infixl 1 <>-<
 (<>-<) :: Functor a => (b -> x) -> ((a x) -> c) -> (a b) -> c
 (<>-<) = (<-<) >-> (>->)
@@ -132,8 +132,8 @@ infixl 1 >-<>
 (>-<>) :: Functor a => ((a x) -> c) -> (b -> x) -> (a b) -> c
 (>-<>) = flip (<>-<)
 
--- generalized (.).(.) (4 types)
--- (x -> c) -> (a -> b -> x) -> a -> b -> c
+-- generalized (.).(.) (4 types)
+-- (x -> c) -> (a -> b -> x) -> a -> b -> c
 infixl 1 <--<<
 (<--<<) :: (Functor a, Functor b) => (x -> c) -> a (b x) -> a (b c)
 (<--<<) = (<-<) >-> (<-<)
@@ -147,8 +147,8 @@ infixl 1 >>-~>
 (>>-~>) :: (Contravariant c, Functor a) => a (b -> x) -> c x -> a (c b)
 (>>-~>) = flip (<~-<<)
 
--- generalized flip(.).flip(.) (4 types)
--- (x -> a) -> ((x -> b) -> c) -> (a -> b) -> c
+-- generalized flip(.).flip(.) (4 types)
+-- (x -> a) -> ((x -> b) -> c) -> (a -> b) -> c
 infixl 1 >>~->
 (>>~->) :: (Functor x, Contravariant c) => x a -> c (x b) -> c (a -> b)
 (>>~->) = (>->) >-> (>~>)
@@ -169,7 +169,7 @@ infixl 1 <-<<
 (<-<<) :: Functor x => (x b -> c) -> x a -> (a -> b) -> c
 (<-<<) = flip (>>->)
 
--- (b -> x) -> (a -> x -> b -> c) -> a -> b -> c
+-- (b -> x) -> (a -> x -> b -> c) -> a -> b -> c
 infixl 1 >=<>
 (>=<>) :: (Monad b, Functor a) => b x -> a (x -> b c) -> a (b c)
 (>=<>) = (>>=) >-> (<-<)
@@ -177,7 +177,7 @@ infixl 1 <>=<
 (<>=<) :: (Monad b, Functor a) => a (x -> b c) -> b x -> a (b c)
 (<>=<) = flip (>=<>)
 
--- (a -> x -> b) -> ((x -> b) -> c) -> (x -> a) -> c
+-- (a -> x -> b) -> ((x -> b) -> c) -> (x -> a) -> c
 infixl 1 <>≈<
 (<>≈<) :: (Monad x, Contravariant c) => (a -> x b) -> c (x b) -> c (x a)
 (<>≈<) = (=<<) >-> (>~>)
@@ -192,8 +192,8 @@ infixl 1 ≈<>
 (≈<>) :: Monad x => (x b -> c) -> (a -> x b) -> x a -> c
 (≈<>) = flip (<>≈)
 
--- generalized >=> (4 types)
--- (a -> b -> x) -> (x -> b -> c) -> a -> b -> c
+-- generalized >=> (4 types)
+-- (a -> b -> x) -> (x -> b -> c) -> a -> b -> c
 infixl 1 >>=>
 (>>=>) :: (Monad b, Functor a) => a (b x) -> (x -> b c) -> a (b c)
 (>>=>) = flip (<=<<)
@@ -201,7 +201,7 @@ infixl 1 <=<<
 (<=<<) :: (Monad b, Functor a) => (x -> b c) -> a (b x) -> a (b c)
 (<=<<) = (=<<) >-> (<-<)
 
--- ((x -> b) -> c) -> (x -> a) -> (a -> x -> b) -> c
+-- ((x -> b) -> c) -> (x -> a) -> (a -> x -> b) -> c
 infixl 1 <≈<<
 (<≈<<) :: (Monad x, Contravariant c) => c (x b) -> x a -> c (a -> x b)
 (<≈<<) = flip (>>≈>)
