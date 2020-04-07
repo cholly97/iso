@@ -9,6 +9,12 @@ import           Data.Functor.Contravariant
 nothingIf :: (a -> Bool) -> a -> Maybe a
 nothingIf f a = if f a then Nothing else Just a
 
+doUntilNothing :: (a -> Maybe a) -> a -> a
+doUntilNothing f = g where g a = maybe a g $ f a
+
+try :: String -> (a -> b) -> Maybe a -> b
+try = maybe . error
+
 -------------------------------- Comparison ------------------------------------
 
 data CompBy a b = CompBy {compFunc :: a -> b, value :: a}
