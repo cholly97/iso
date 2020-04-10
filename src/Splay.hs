@@ -17,7 +17,7 @@ instance BST SplayTree where
   singleton k = N k (E, E)
 
 instance Show a => Show (SplayTree a) where
-  show = toString
+  show = toString2d 1
 
 -- W/S - O(1)
 splayOp :: Finger SplayTree a -> Maybe (Finger SplayTree a)

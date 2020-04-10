@@ -6,6 +6,13 @@ import           Control.Monad
 import           Data.Function
 import           Data.Functor.Contravariant
 
+-------------------------------- List ------------------------------------------
+
+rpad :: Int -> a -> [a] -> [a]
+rpad n x xs = take n $ xs ++ repeat x
+
+-------------------------------- Maybe -----------------------------------------
+
 nothingIf :: (a -> Bool) -> a -> Maybe a
 nothingIf f a = if f a then Nothing else Just a
 
