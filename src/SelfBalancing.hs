@@ -21,14 +21,23 @@ class BST bst => SelfBalancing bst where
   -- split t x = (b, l, r)
   -- ensures b = x in t, l < x < r
   -- W/S - O(lg |t|)
-  split :: Ord a => a -> bst a -> (Bool, bst a, bst a)
+  split, split' :: Ord a => a -> bst a -> (Bool, bst a, bst a)
+  -- can use split = split' but native implementation may be desired
+  split' k t = case expose t of -- split implemented using joinM
+    Leaf -> (False, empty, empty)
+    Node k' (l, r) -> case compare k k' of
+      EQ -> (True, l, r)
+      LT -> let (b, l', r') = split k l in (b, l', joinM k' r' r)
+      GT -> let (b, l', r') = split k r in (b, joinM k' l l', r')
   -- alternate form of join
   -- joinM k t1 t2 = t
   -- requires t1 < k < t2
   -- ensures inord t1 ++ [k] ++ inord t2 == inord t
-  -- W/S - O(lg (|t1| + |t2|))
-  joinM :: a -> bst a -> bst a -> bst a
-  joinM x t1 t2 = join t1 (join (singleton x) t2)
+  -- W/S - O(1)
+  joinM, joinM' :: a -> bst a -> bst a -> bst a
+  joinM  x t1 t2 = unexpose $ Node x (t1, t2)
+  -- same as joinM except W/S - O(lg (|t1| + |t2|))
+  joinM' x t1 t2 = join t1 (join (singleton x) t2)
 
   -- derived basic functions
   -- W/S - O(lg |t|)
