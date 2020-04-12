@@ -19,8 +19,8 @@ nothingIf f a = if f a then Nothing else Just a
 doUntilNothing :: (a -> Maybe a) -> a -> a
 doUntilNothing f = g where g a = maybe a g $ f a
 
-try :: String -> (a -> b) -> Maybe a -> b
-try = maybe . error
+tryMaybe :: String -> (a -> b) -> Maybe a -> b
+tryMaybe = maybe . error
 
 -------------------------------- Comparison ------------------------------------
 

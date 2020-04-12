@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances, TemplateHaskell #-}
 module Trees where
 
 import           Utils
@@ -8,7 +8,8 @@ import qualified Control.Monad                 as Mon
 import           Data.List
 import           Data.Maybe
 
-data TreeView t a = Leaf | Node {key::a, children:: (t a, t a)}
+data TreeView t a = Leaf | Node {_key::a, _children:: (t a, t a)}
+$(makeLenses ''TreeView)
 
 getValue :: TreeView t a -> Maybe a
 getValue (Node k _) = Just k
@@ -96,8 +97,8 @@ class BST bst where
   doToRoot :: (Finger bst a -> Finger bst a) -> bst a -> Maybe (Finger bst a)
   doToRoot = (root >>-->)
   inf', sup' :: Finger bst a -> Finger bst a
-  inf' = doUntilNothing childL >-> parent >-> try "empty tree" id
-  sup' = doUntilNothing childR >-> parent >-> try "empty tree" id
+  inf' = doUntilNothing childL >-> parent >-> tryMaybe "empty tree" id
+  sup' = doUntilNothing childR >-> parent >-> tryMaybe "empty tree" id
   -- reconstructing trees
   -- W/S - O(lg |t|)
   reconstruct :: Finger bst a -> bst a
@@ -148,13 +149,15 @@ class BST bst where
   -- W/S - O(lg(j - i + 1)) expected
   -- where i, j are ranks of the start and end keys
   searchFrom :: Ord a => a -> Finger bst a -> Maybe (Finger bst a)
-  searchFrom _ (Leaf, _, _) = Nothing
-  searchFrom k f@(Node k' (l, r), i, _) = if inRange k i
-    then case compare k k' of
-      EQ -> Just f
-      LT -> searchFrom k =<< childL f
-      GT -> searchFrom k =<< childR f
-    else searchFrom k =<< parent f
+  searchFrom k = sf where
+    sf f@(tv, i, _) = case tv of
+      Leaf -> Nothing
+      Node k' _ -> if inRange k i
+        then case compare k k' of
+          EQ -> Just f
+          LT -> sf =<< childL f
+          GT -> sf =<< childR f
+        else sf =<< parent f
   -- alternate search where a Leaf finger is returned instead of Nothing
   -- W/S - O(lg |t|) expected
   search' :: Ord a => a -> bst a -> Finger bst a
@@ -162,14 +165,15 @@ class BST bst where
   -- W/S - O(lg(j - i + 1)) expected
   -- where i, j are ranks of the start and end keys
   searchFrom' :: Ord a => a -> Finger bst a -> Finger bst a
-  searchFrom' _ f@(Leaf, _, _) = f
-  searchFrom' k f@(Node k' (l, r), i, _) = if inRange k i
-    then case compare k k' of
-      EQ -> f
-      LT -> try "bad implementation of childL" cont $ childL f
-      GT -> try "bad implementation of childR" cont $ childR f
-    else try "malformed root finger, range /= (NegInf, PosInf)" cont $ parent f
-    where cont = searchFrom' k
+  searchFrom' k = sf where
+    sf f@(tv, i, _) = case tv of
+      Leaf -> f
+      Node k' _ -> if inRange k i
+        then case compare k k' of
+          EQ -> f
+          LT -> tryMaybe "bad implementation of childL" sf $ childL f
+          GT -> tryMaybe "bad implementation of childR" sf $ childR f
+        else tryMaybe "malformed root finger" sf $ parent f
 
   -- ((((4)8(29))57((67)88))100((146)210((234)267(317))))
   toString1d :: Show a => bst a -> String

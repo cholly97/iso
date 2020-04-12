@@ -4,6 +4,7 @@ import           SelfBalancing
 import           Trees
 import           Utils
 
+import           Control.Lens
 import           Data.Maybe
 
 data SplayTree a = E | N a (SplayTree a, SplayTree a)
@@ -36,12 +37,13 @@ splay = doUntilNothing splayOp
 instance SelfBalancing SplayTree where
   join t1 t2 = maybe t2 join' $ sup t1
    where
-    join' = splay >-> replaceR >-> reconstruct
+    join'    = splay >-> replaceR >-> reconstruct
+    replaceR = set >- _1 . Trees.children . _2 >- t2
     -- partial function because splaying largest element to root
     -- should always result in empty right child, and no parent
-    replaceR (Node k (l, empty), (NegInf, PosInf), []) =
-      (Node k (l, t2), (NegInf, PosInf), [])
-    replaceR _ = error "bad implementation of splay and/or sup"
+    -- replaceR (Node k (l, empty), (NegInf, PosInf), []) =
+      -- (Node k (l, t2), (NegInf, PosInf), [])
+    -- replaceR _ = error "bad implementation of splay and/or sup"
 
   split k t = (b, l, r)
    where
