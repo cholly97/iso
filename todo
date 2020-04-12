@@ -1,2 +1,6 @@
+implement top-down splay trees
+change lineStore to use splay trees + finger search for mouse updates
 translate and zoom viewport
 add/remove line segments
+adjust limits
+toggle grid
