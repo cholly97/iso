@@ -1,5 +1,6 @@
 module Splay where
 
+import           Finger
 import           SelfBalancing
 import           Trees
 import           Utils
@@ -16,6 +17,8 @@ instance BST SplayTree where
   unexpose Leaf            = E
   empty = E
   singleton k = N k (E, E)
+
+instance FingerBST SplayTree
 
 instance Show a => Show (SplayTree a) where
   show = toString2d 1
