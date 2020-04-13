@@ -97,8 +97,8 @@ class BST bst where
   doToRoot :: (Finger bst a -> Finger bst a) -> bst a -> Maybe (Finger bst a)
   doToRoot = (root >>-->)
   inf', sup' :: Finger bst a -> Finger bst a
-  inf' = doUntilNothing childL >-> parent >-> tryMaybe "empty tree" id
-  sup' = doUntilNothing childR >-> parent >-> tryMaybe "empty tree" id
+  inf' = doUntilNothing childL >-> parent >-> tryFromMaybe "empty tree"
+  sup' = doUntilNothing childR >-> parent >-> tryFromMaybe "empty tree"
   -- reconstructing trees
   -- W/S - O(lg |t|)
   reconstruct :: Finger bst a -> bst a

@@ -5,6 +5,7 @@ import           Control.Lens
 import           Control.Monad
 import           Data.Function
 import           Data.Functor.Contravariant
+import           Data.Maybe
 
 -------------------------------- List ------------------------------------------
 
@@ -21,6 +22,9 @@ doUntilNothing f = g where g a = maybe a g $ f a
 
 tryMaybe :: String -> (a -> b) -> Maybe a -> b
 tryMaybe = maybe . error
+
+tryFromMaybe :: String -> Maybe a -> a
+tryFromMaybe = fromMaybe . error
 
 -------------------------------- Comparison ------------------------------------
 
