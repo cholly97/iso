@@ -45,11 +45,9 @@ instance SelfBalancing SplayTree where
       -- (Node k (l, t2), (NegInf, PosInf), [])
     -- replaceR _ = error "bad implementation of splay and/or sup"
 
-  split k t = (b, l, r)
-   where
-    (f', b) = case search' k t of
-       -- replace Leaf with dummy node so that it can be splayed
-      (Leaf, i, ps) -> ((Node undefined (E, E), i, ps), False)
-      f             -> (f, True)
-    (l, r) = case splay f' of
-      (Node _ c, _, _) -> c
+  split k t = case splay . lastAccessed $ search' k t of
+    (Leaf          , _, _) -> (False, empty, empty)
+    (Node k' (l, r), _, _) -> case compare k k' of
+      EQ -> (True, l, r)
+      LT -> (False, l, unexpose $ Node k (empty, r))
+      GT -> (False, unexpose $ Node k (l, empty), r)

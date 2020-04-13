@@ -175,6 +175,12 @@ class BST bst where
           GT -> tryMaybe "bad implementation of childR" sf $ childR f
         else tryMaybe "malformed root finger" sf $ parent f
 
+  -- last non-leaf node accessed, unless tree is empty
+  -- W/S - O(1)
+  lastAccessed :: Finger bst a -> Finger bst a
+  lastAccessed f@(Leaf, _, _:_) = tryFromMaybe "no parent" $ parent f
+  lastAccessed f = f
+
   -- ((((4)8(29))57((67)88))100((146)210((234)267(317))))
   toString1d :: Show a => bst a -> String
   toString1d t = case expose t of
