@@ -26,27 +26,23 @@ instance Show a => Show (SplayTree a) where
 
 -- W/S - O(1)
 splayOp :: Finger SplayTree a -> Maybe (Finger SplayTree a)
-splayOp f@(_, _, ps) = op f
- where
-  op = case ps of
-    L{} : L{} : _ -> parent >>=> parent >>=> rotateR >>=> rotateR
-    R{} : R{} : _ -> parent >>=> parent >>=> rotateL >>=> rotateL
-    L{} : R{} : _ -> parent >>=> rotateR >>=> parent >>=> rotateL
-    R{} : L{} : _ -> parent >>=> rotateL >>=> parent >>=> rotateR
-    L{}       : _ -> parent >>=> rotateR
-    R{}       : _ -> parent >>=> rotateL
-    []            -> const Nothing
+splayOp f@(_, _, ps) = f >- case ps of
+  L{} : L{} : _ -> parent >>=> parent >>=> rotateR >>=> rotateR
+  R{} : R{} : _ -> parent >>=> parent >>=> rotateL >>=> rotateL
+  L{} : R{} : _ -> parent >>=> rotateR >>=> parent >>=> rotateL
+  R{} : L{} : _ -> parent >>=> rotateL >>=> parent >>=> rotateR
+  L{}       : _ -> parent >>=> rotateR
+  R{}       : _ -> parent >>=> rotateL
+  []            -> const Nothing
 splayOp' :: Finger SplayTree a -> Finger SplayTree a
-splayOp' f@(_, _, ps) = op f
- where
-  op = case ps of
-    L{} : L{} : _ -> parent' >-> parent' >-> rotateR' >-> rotateR'
-    R{} : R{} : _ -> parent' >-> parent' >-> rotateL' >-> rotateL'
-    L{} : R{} : _ -> parent' >-> rotateR' >-> parent' >-> rotateL'
-    R{} : L{} : _ -> parent' >-> rotateL' >-> parent' >-> rotateR'
-    L{}       : _ -> parent' >-> rotateR'
-    R{}       : _ -> parent' >-> rotateL'
-    []            -> error "root"
+splayOp' f@(_, _, ps) = f >- case ps of
+  L{} : L{} : _ -> parent' >-> parent' >-> rotateR' >-> rotateR'
+  R{} : R{} : _ -> parent' >-> parent' >-> rotateL' >-> rotateL'
+  L{} : R{} : _ -> parent' >-> rotateR' >-> parent' >-> rotateL'
+  R{} : L{} : _ -> parent' >-> rotateL' >-> parent' >-> rotateR'
+  L{}       : _ -> parent' >-> rotateR'
+  R{}       : _ -> parent' >-> rotateL'
+  []            -> error "root"
 -- W/S - O(lg |t|) expected
 splay, splay' :: Finger SplayTree a -> Finger SplayTree a
 splay = doUntilNothing splayOp

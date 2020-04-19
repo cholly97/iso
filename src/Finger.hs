@@ -3,7 +3,7 @@ module Finger where
 import           Trees
 import           Utils
 
-import           Data.Maybe
+import           Control.Monad
 
 data Range a = NegInf | PosInf | Finite a deriving Eq
 
@@ -43,7 +43,7 @@ class BST bst => FingerBST bst where
   unPoint = lift >-> unexpose
   -- W/S - O(lg |t|)
   reconstruct :: Finger bst a -> bst a
-  reconstruct f@(t, _, _) = maybe (unexpose t) reconstruct $ parent f
+  reconstruct = unexpose . lift >-> flip maybe reconstruct >- ap -< parent
 
   -- moving the finger around, fail if can't move
   -- W/S - O(1)
@@ -64,12 +64,15 @@ class BST bst => FingerBST bst where
   -- root: W/S - O(1)
   -- minimal, maximal: W/S - (lg |t|)
   root, minimal, maximal :: Finger bst a -> Maybe (Finger bst a)
-  root f@(Node {}, _, []) = Just f
-  root f = parent f >>= root
-  minimal f@(_, (NegInf, _), _) = inf f
-  minimal f = parent f >>= minimal
-  maximal f@(_, (_, PosInf), _) = sup f
-  maximal f = parent f >>= maximal
+  root f = f >- case f of
+    (Node {}, _, []) -> Just
+    _                -> parent >>=> root
+  minimal f = f >- case f of
+    (_, (NegInf, _), _) -> inf
+    _                   -> parent >>=> minimal
+  maximal f = f >- case f of
+    (_, (_, PosInf), _) -> sup
+    _                   -> parent >>=> maximal
   -- minimal/maximal in subtree, unless Leaf node, in which case return parent
   inf, sup :: Finger bst a -> Maybe (Finger bst a)
   inf = doUntilNothing childL >-> parent
@@ -94,23 +97,27 @@ class BST bst => FingerBST bst where
   -- iterating using fingers, fail if doesn't exist
   -- W/S - O(1) expected
   prev, next :: Ord a => Finger bst a -> Maybe (Finger bst a)
-  prev f@(Leaf, _, _) = parentL f
-  prev f@(Node k (l, _), _, _) = case expose l of
-    Leaf -> parentL f
-    _ -> childL f >>= sup
-  next f@(Leaf, _, _) = parentR f
-  next f@(Node k (_, r), _, _) = case expose r of
-    Leaf -> parentR f
-    _ -> childR f >>= inf
+  prev f = f >- case f of
+    (Leaf, _, _)          -> parentL
+    (Node k (l, _), _, _) -> case expose l of
+      Leaf                -> parentL
+      _                   -> childL >>=> sup
+  next f = f >- case f of
+    (Leaf, _, _)          -> parentR
+    (Node k (_, r), _, _) -> case expose r of
+      Leaf                -> parentR
+      _                   -> childR >>=> inf
   parentL, parentR :: Finger bst a -> Maybe (Finger bst a)
-  parentL f@(_, (_, Finite _), p : _) = case p of
-    L {} -> parent f
-    R {} -> parent f >>= parentL
-  parentL _ = Nothing
-  parentR f@(_, (Finite _, _), p : _) = case p of
-    L {} -> parent f >>= parentR
-    R {} -> parent f
-  parentR _ = Nothing
+  parentL f = f >- case f of
+    (_, (_, Finite _), p : _) -> case p of
+      L {}                    -> parent
+      R {}                    -> parent >>=> parentL
+    _                         -> const Nothing
+  parentR f = f >- case f of
+    (_, (Finite _, _), p : _) -> case p of
+      L {}                    -> parent >>=> parentR
+      R {}                    -> parent
+    _                         -> const Nothing
 
   -- searching a tree, returns Leaf finger if not in tree
   -- W/S - O(lg |t|) expected
@@ -121,20 +128,23 @@ class BST bst => FingerBST bst where
   -- where i, j are ranks of the start and end keys
   searchFrom :: Ord a => a -> Finger bst a -> Maybe (Finger bst a)
   searchFrom k = sf where
-    sf f@(tv, i, _) = case tv of
-      Leaf -> if inRange k i then Just f else parent f >>= sf
+    sf f@(tv, i, _) = f >- case tv of
+      Leaf      -> if inRange k i
+        then       Just
+        else       parent >>=> sf
       Node k' _ -> if inRange k i
-        then case compare k k' of
-          EQ -> Just f
-          LT -> childL f >>= sf
-          GT -> childR f >>= sf
-        else parent f >>= sf
+        then       case compare k k' of
+          EQ    -> Just
+          LT    -> childL >>=> sf
+          GT    -> childR >>=> sf
+        else       parent >>=> sf
 
   -- last non-leaf node accessed, unless tree is empty
   -- W/S - O(1)
   lastAccessed :: Finger bst a -> Maybe (Finger bst a)
-  lastAccessed f@(Leaf, _, _) = parent f
-  lastAccessed f = Just f
+  lastAccessed f = f >- case f of
+    (Leaf, _, _) -> parent
+    _            -> Just
 
 -- version that fails with error instead of using the Maybe monad
 class BST bst => FingerBST' bst where
@@ -147,8 +157,9 @@ class BST bst => FingerBST' bst where
   unPoint' = lift >-> unexpose
   -- W/S - O(lg |t|)
   reconstruct' :: Finger bst a -> bst a
-  reconstruct' f@(_, _, []) = unPoint' f
-  reconstruct' f            = parent' f >- reconstruct'
+  reconstruct' f = f >- case f of
+    (_, _, []) -> unPoint'
+    _          -> parent' >-> reconstruct'
 
   -- moving the finger around, fail if can't move
   -- W/S - O(1)
@@ -169,18 +180,23 @@ class BST bst => FingerBST' bst where
   -- root: W/S - O(1)
   -- minimal, maximal: W/S - (lg |t|)
   root', minimal', maximal' :: Finger bst a -> Finger bst a
-  root' f@(Node {}, _, []) = f
-  root' f = parent' f >- root'
-  minimal' f@(_, (NegInf, _), _) = inf' f
-  minimal' f = parent' f >- minimal'
-  maximal' f@(_, (_, PosInf), _) = sup' f
-  maximal' f = parent' f >- maximal'
+  root' f = f >- case f of
+    (Node {}, _, []) -> id
+    _                -> parent' >-> root'
+  minimal' f = f >- case f of
+    (_, (NegInf, _), _) -> inf'
+    _                   -> parent' >-> minimal'
+  maximal' f = f >- case f of
+    (_, (_, PosInf), _) -> sup'
+    _                   -> parent' >-> maximal'
   -- minimal/maximal in subtree, unless Leaf node, in which case return parent
   inf', sup' :: Finger bst a -> Finger bst a
-  inf' f@(Leaf, _, _) = parent' f
-  inf' f = childL' f >- inf'
-  sup' f@(Leaf, _, _) = parent' f
-  sup' f = childR' f >- sup'
+  inf' f = f >- case f of
+    (Leaf, _, _) -> parent'
+    _            -> childL' >-> inf'
+  sup' f = f >- case f of
+    (Leaf, _, _) -> parent'
+    _            -> childR' >-> sup'
 
   -- rotations, fail if either of two nodes are Leafs
   -- W/S - O(1)
@@ -201,23 +217,27 @@ class BST bst => FingerBST' bst where
   -- iterating using fingers, fail if maximal/minimal Leaf/Node
   -- W/S - O(1) expected
   prev', next' :: Ord a => Finger bst a -> Finger bst a
-  prev' f@(Leaf, _, _) = parentL' f
-  prev' f@(Node k (l, _), _, _) = case expose l of
-    Leaf -> parentL' f
-    _ -> sup' . childL' $ f
-  next' f@(Leaf, _, _) = parentR' f
-  next' f@(Node k (_, r), _, _) = case expose r of
-    Leaf -> parentR' f
-    _ -> inf' . childR' $ f
+  prev' f = f >- case f of
+    (Leaf, _, _)          -> parentL'
+    (Node k (l, _), _, _) -> case expose l of
+      Leaf                -> parentL'
+      _                   -> childL' >-> sup'
+  next' f = f >- case f of
+    (Leaf, _, _)          -> parentR'
+    (Node k (_, r), _, _) -> case expose r of
+      Leaf                -> parentR'
+      _                   -> childR' >-> inf'
   parentL', parentR' :: Finger bst a -> Finger bst a
-  parentL' f@(_, (_, Finite _), p : _) = case p of
-    L {} -> parent' f
-    R {} -> parent' f >- parentL'
-  parentL' _ = error "no left parent"
-  parentR' f@(_, (Finite _, _), p : _) = case p of
-    L {} -> parent' f >- parentL'
-    R {} -> parent' f
-  parentR' _ = error "no right parent"
+  parentL' f = f >- case f of
+    (_, (_, Finite _), p : _) -> case p of
+      L {}                    -> parent'
+      R {}                    -> parent' >-> parentL'
+    _                         -> error "no left parent"
+  parentR' f = f >- case f of
+    (_, (Finite _, _), p : _) -> case p of
+      L {}                    -> parent' >-> parentL'
+      R {}                    -> parent'
+    _                         -> error "no right parent"
 
   -- searching a tree, returns Leaf finger if not in tree
   -- W/S - O(lg |t|) expected
@@ -228,17 +248,20 @@ class BST bst => FingerBST' bst where
   -- where i, j are ranks of the start and end keys
   searchFrom' :: Ord a => a -> Finger bst a -> Finger bst a
   searchFrom' k = sf' where
-    sf' f@(tv, i, _) = case tv of
-      Leaf -> if inRange k i then f else parent' f >- sf'
+    sf' f@(tv, i, _) = f >- case tv of
+      Leaf      -> if inRange k i
+        then       id
+        else       parent' >-> sf'
       Node k' _ -> if inRange k i
-        then case compare k k' of
-          EQ -> f
-          LT -> childL' f >- sf'
-          GT -> childR' f >- sf'
-        else parent' f >- sf'
+        then       case compare k k' of
+          EQ    -> id
+          LT    -> childL' >-> sf'
+          GT    -> childR' >-> sf'
+        else       parent' >-> sf'
 
   -- last non-leaf node accessed, unless tree is empty
   -- W/S - O(1)
   lastAccessed' :: Finger bst a -> Finger bst a
-  lastAccessed' f@(Leaf, _, _) = parent' f
-  lastAccessed' f = f
+  lastAccessed' f = f >- case f of
+    (Leaf, _, _) -> parent'
+    _            -> id
