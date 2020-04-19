@@ -21,8 +21,8 @@ drawRanges =
     >->   flap [_line, _intersect]
     >>--> Circle
     >->   Pictures
-    -<    moveToMouse
-  where moveToMouse = _mousePos >-> translateP -< ap
+    >-    moveToMouse
+  where moveToMouse = _mousePos >-> translateP >- ap
 
 drawGrid :: World -> Picture
 drawGrid w = Pictures $ drawSnapPoint : drawLimits
@@ -30,7 +30,7 @@ drawGrid w = Pictures $ drawSnapPoint : drawLimits
   drawLimits    = [drawLimitPoints, maybeDrawGridLines] <*> w ^. limits
   drawSnapPoint = drawPoint $ w ^. snapPoint
   maybeDrawGridLines =
-    drawGridLines <>-< flap >- w ^. bounds >-> fromMaybe Blank
+    drawGridLines <>-< flap -< w ^. bounds >-> fromMaybe Blank
 
 drawLimitPoints :: Limit -> Picture
 drawLimitPoints Infinite{}   = Blank

@@ -52,21 +52,21 @@ splay, splay' :: Finger SplayTree a -> Finger SplayTree a
 splay = doUntilNothing splayOp
 -- version that uses splayOp'
 splay' f@(_, _, []) = f
-splay' f            = splayOp' f -< splay'
+splay' f            = splayOp' f >- splay'
 
 instance SelfBalancing SplayTree where
   join t1 t2 = case expose t1 of
     Leaf -> t2
-    _    -> point' t1 -< maximal' -< joinWitht2
+    _    -> point' t1 >- maximal' >- joinWitht2
    where
     joinWitht2 = splay' >-> replaceRt2 >-> unexpose
-    replaceRt2 = set >- Trees.children . _2 >- t2 <-< lift
+    replaceRt2 = set -< Trees.children . _2 -< t2 <-< lift
     -- partial function because splaying largest element to root
     -- should always result in empty right child, and no parent
     -- replaceR (Node k (l, _), (NegInf, PosInf), []) = Node k (l, t2)
     -- replaceR _ = error "bad implementation of splay and/or sup"
 
-  split k t = case search' k t -< lastAccessed' -< splay' of
+  split k t = case search' k t >- lastAccessed' >- splay' of
     (Leaf          , _, _) -> (False, empty, empty)
     (Node k' (l, r), _, _) -> case compare k k' of
       EQ -> (True, l, r)

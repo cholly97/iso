@@ -35,7 +35,7 @@ compByFunc
   => ((CompBy a b -> CompBy a b -> Ordering) -> t (CompBy a b) -> CompBy a b)
   -> t (CompBy a b)
   -> a
-compByFunc = eval <-< on compare >- compFunc <*> value >>--> value
+compByFunc = eval <-< on compare -< compFunc <*> value >>--> value
 
 -------------------------------- Combinators -----------------------------------
 infixl 0 >>>
@@ -66,14 +66,20 @@ infixl 0 -:
 (-:) = flip ($)
 eval = (-:)
 
+-- the following combinators satisfy these identities:
+-- "anti-symmetry": f ?? g      === g !! f    where ?? is the mirror image of !!
+-- "combining":     (f ??) !! g === f ?! g    where (?!) = (??) >-> (!!)
+-- f1 x >-  ...  >- fn === x -: f1 >->  ...  >-> fn
+-- f1 x >>= ... >>= fn === x -: f1 >>=> ... >>=> fn
+
 
 -- generalized $ (2 types)
-infixl 1 -<
-(-<) :: a -> (a -> b) -> b
-(-<) = flip (>-)
 infixl 1 >-
-(>-) :: (a -> b) -> a -> b
-(>-) = id
+(>-) :: a -> (a -> b) -> b
+(>-) = flip (-<)
+infixl 1 -<
+(-<) :: (a -> b) -> a -> b
+(-<) = id
 
 
 -- generalized flip (3 types)

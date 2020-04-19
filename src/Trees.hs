@@ -87,7 +87,7 @@ class BST bst where
               -- w(n) = spacing * (2 * n + 1)
               l = ll + lr + li
               r = rl + rr + ri
-              height = max >- length lss >- length rss
+              height = max -< length lss -< length rss
               -- w(n) = padding + rootLen
               --      = spacing * (2 * (ll + li + rr + ri + lr + rl) + 3)
               --      = spacing * (2 * (l + r + 1) + 1)
@@ -113,8 +113,8 @@ class BST bst where
               (padderR, branchR) = if null rss
                 then (repeat ' ',     " ")
                 else (' ':repeat '_', "\\")
-              padL = take padLenL >- padderL
-              padR = take padLenR >- padderR -< reverse
+              padL = take padLenL -< padderL
+              padR = take padLenR -< padderR >- reverse
               rootRep = mconcat [padL, rep, padR]:[mconcat [
                 branchL,
                 spaces $ rootLen - 2,
@@ -125,8 +125,8 @@ class BST bst where
                 spaces $ spacing * 2 * (ll + li),
                 line,
                 spaces $ spacing * 2 * (rr + ri)]
-              lssPadded = spacing * (2 * l + 1) -< spaces -< rpad height >- lss
-              rssPadded = spacing * (2 * r + 1) -< spaces -< rpad height >- rss
+              lssPadded = spacing * (2 * l + 1) >- spaces >- rpad height -< lss
+              rssPadded = spacing * (2 * r + 1) >- spaces >- rpad height -< rss
               -- w(n) = w(l) + w(r) + spacing
               --      = spacing * (2 * l + 1 + 2 * r + 1 + 1)
               --      = spacing * (2 * (l + r + 1) + 1)

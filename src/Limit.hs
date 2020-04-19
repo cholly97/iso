@@ -95,9 +95,9 @@ fuzzyInsert (f, l) ls = case fuzzyLookup f ls of
   Just _  -> ls
 
 fuzzyDelete :: Float -> LineStore -> LineStore
-fuzzyDelete f ls = Map.delete . fst <$> fuzzyLookup f ls ?? ls -< fromMaybe ls
+fuzzyDelete f ls = Map.delete . fst <$> fuzzyLookup f ls ?? ls >- fromMaybe ls
 -- fuzzyDelete =
-  -- fst >-> Map.delete -< fmap <--<< fuzzyLookup >>=> flap >-> ap fromMaybe
+  -- fst >-> Map.delete >- fmap <--<< fuzzyLookup >>=> flap >-> ap fromMaybe
 
 fuzzyLookup :: Float -> LineStore -> Maybe (Float, Line)
 fuzzyLookup f = (nothingIf cond =<<) <$> Map.lookupLE (f + tolerance)

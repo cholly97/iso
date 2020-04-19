@@ -36,6 +36,6 @@ handleInputs (EventKey (MouseButton button) Down m p) =
   pointFunc Modifiers { shift = Down } = view snapPoint
   pointFunc _                          = const p
 handleInputs (EventKey (SpecialKey KeyShiftL) s _ _) =
-  s == Down -< set snapState >-> return
+  s == Down >- set snapState >-> return
 handleInputs (EventMotion p) = set mousePos p >-> return
 handleInputs _               = return

@@ -52,7 +52,7 @@ getSnapPoint :: World -> Point
 getSnapPoint = snap <$> _mousePos <*> _limits <*> _stickiness . _settings
 
 maybeInit :: World -> IO World
-maybeInit = doInit -< maybe >- const return <-< _bounds -< join
+maybeInit = doInit >- maybe -< const return <-< _bounds >- join
 
 doInit :: World -> IO World
 doInit w = getScreenSize >-> toBound . join bimap fromIntegral >>= fin
@@ -67,7 +67,7 @@ modWorld f =
   pointToLineRep >>--> f >>=> over lineStore >-> fmap >-> over limits
 
 addGridPoint :: Point -> World -> World
-addGridPoint = fuzzyInsert -< modWorld
+addGridPoint = fuzzyInsert >- modWorld
 
 removeGridPoint :: Point -> World -> World
-removeGridPoint = fst >-> fuzzyDelete -< modWorld
+removeGridPoint = fst >-> fuzzyDelete >- modWorld

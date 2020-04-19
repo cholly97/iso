@@ -148,7 +148,7 @@ class BST bst => FingerBST' bst where
   -- W/S - O(lg |t|)
   reconstruct' :: Finger bst a -> bst a
   reconstruct' f@(_, _, []) = unPoint' f
-  reconstruct' f            = parent' f -< reconstruct'
+  reconstruct' f            = parent' f >- reconstruct'
 
   -- moving the finger around, fail if can't move
   -- W/S - O(1)
@@ -170,17 +170,17 @@ class BST bst => FingerBST' bst where
   -- minimal, maximal: W/S - (lg |t|)
   root', minimal', maximal' :: Finger bst a -> Finger bst a
   root' f@(Node {}, _, []) = f
-  root' f = parent' f -< root'
+  root' f = parent' f >- root'
   minimal' f@(_, (NegInf, _), _) = inf' f
-  minimal' f = parent' f -< minimal'
+  minimal' f = parent' f >- minimal'
   maximal' f@(_, (_, PosInf), _) = sup' f
-  maximal' f = parent' f -< maximal'
+  maximal' f = parent' f >- maximal'
   -- minimal/maximal in subtree, unless Leaf node, in which case return parent
   inf', sup' :: Finger bst a -> Finger bst a
   inf' f@(Leaf, _, _) = parent' f
-  inf' f = childL' f -< inf'
+  inf' f = childL' f >- inf'
   sup' f@(Leaf, _, _) = parent' f
-  sup' f = childR' f -< sup'
+  sup' f = childR' f >- sup'
 
   -- rotations, fail if either of two nodes are Leafs
   -- W/S - O(1)
@@ -212,10 +212,10 @@ class BST bst => FingerBST' bst where
   parentL', parentR' :: Finger bst a -> Finger bst a
   parentL' f@(_, (_, Finite _), p : _) = case p of
     L {} -> parent' f
-    R {} -> parent' f -< parentL'
+    R {} -> parent' f >- parentL'
   parentL' _ = error "no left parent"
   parentR' f@(_, (Finite _, _), p : _) = case p of
-    L {} -> parent' f -< parentL'
+    L {} -> parent' f >- parentL'
     R {} -> parent' f
   parentR' _ = error "no right parent"
 
@@ -229,13 +229,13 @@ class BST bst => FingerBST' bst where
   searchFrom' :: Ord a => a -> Finger bst a -> Finger bst a
   searchFrom' k = sf' where
     sf' f@(tv, i, _) = case tv of
-      Leaf -> if inRange k i then f else parent' f -< sf'
+      Leaf -> if inRange k i then f else parent' f >- sf'
       Node k' _ -> if inRange k i
         then case compare k k' of
           EQ -> f
-          LT -> childL' f -< sf'
-          GT -> childR' f -< sf'
-        else parent' f -< sf'
+          LT -> childL' f >- sf'
+          GT -> childR' f >- sf'
+        else parent' f >- sf'
 
   -- last non-leaf node accessed, unless tree is empty
   -- W/S - O(1)
