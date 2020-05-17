@@ -1,10 +1,8 @@
 module Utils where
 
-import           Control.Applicative
 import           Control.Lens
 import           Control.Monad
 import           Data.Function
-import           Data.Functor.Contravariant
 import           Data.Maybe
 
 -------------------------------- List ------------------------------------------

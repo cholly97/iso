@@ -8,7 +8,6 @@ import           Graphics.Gloss
 import           Graphics.Gloss.Data.Vector
 import qualified Graphics.Gloss.Data.Point.Arithmetic
                                                as Pt
-import           Graphics.Gloss.Geometry.Angle
 import           Graphics.Gloss.Geometry.Line
 
 type Bounds = (Float, Float, Float, Float)

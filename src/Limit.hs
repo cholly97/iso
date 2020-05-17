@@ -4,10 +4,7 @@ module Limit where
 import           Geom
 import           Utils
 
-import           Control.Arrow
 import           Control.Lens
-import           Control.Monad
-import           Data.Function
 import           Data.List                      ( minimumBy )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe

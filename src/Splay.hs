@@ -6,7 +6,6 @@ import           Trees
 import           Utils
 
 import           Control.Lens
-import           Data.Maybe
 
 data SplayTree a = E | N a (SplayTree a, SplayTree a)
 

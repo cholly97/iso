@@ -6,7 +6,6 @@ import           Utils
 import           Control.Lens
 import qualified Control.Monad                 as Mon
 import           Data.List
-import           Data.Maybe
 
 data TreeView t a = Leaf | Node {_key::a, _children:: (t a, t a)}
 $(makeLenses ''TreeView)

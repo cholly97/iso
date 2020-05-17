@@ -8,7 +8,6 @@ import           Utils
 import           Control.Conditional            ( if' )
 import           Control.Lens
 import           Control.Monad
-import qualified Data.Map.Strict               as Map
 import           Graphics.Gloss.Interface.Environment
 import           Graphics.Gloss.Interface.IO.Game
 

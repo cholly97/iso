@@ -2,7 +2,6 @@
 module SelfBalancing where
 
 import           Trees
-import           Utils
 
 class BST bst => SelfBalancing bst where
   -- each function hereafter
