@@ -62,8 +62,13 @@ infixl 0 -:
 eval = (-:)
 
 -- the following combinators satisfy these identities:
--- "anti-symmetry": f ?? g      === g !! f    where ?? is the mirror image of !!
--- "combining":     (f ??) !! g === f ?! g    where (?!) = (??) >-> (!!)
+-- "anti-symmetry":  f <! g  === g !> f      where <! is the mirror image of !>
+-- "combining":  (f <?) !> g === f <?!> g    where (<?!>) = (<?) >-> (!>)
+-- thus, using both "combining" and "anti-symmetry":
+-- f <! (?> g) === f <! (g <?) === (g <?) !> f === g <?!> f === f <!?> g
+-- note that here, <!?> =/= (<!) >-> (?>),
+-- instead it is merely the mirror image of <?!>, namely flip (<?!>)
+-- in addition, composition ~ repeated application like so:
 -- f1 x >-  ...  >- fn === x -: f1 >->  ...  >-> fn
 -- f1 x >>= ... >>= fn === x -: f1 >>=> ... >>=> fn
 
