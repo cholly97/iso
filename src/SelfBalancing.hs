@@ -2,6 +2,7 @@
 module SelfBalancing where
 
 import           Trees
+import           Utils
 
 class BST bst => SelfBalancing bst where
   -- each function hereafter
@@ -9,7 +10,7 @@ class BST bst => SelfBalancing bst where
   -- ensures output ts are sorted
 
   fromList :: Ord a => [a] -> bst a
-  fromList = foldl (flip insert) empty
+  fromList = foldl -< flip insert -< empty
 
   -- parametric axioms
   -- join t1 t2 = t
@@ -36,7 +37,7 @@ class BST bst => SelfBalancing bst where
   joinM, joinM' :: a -> bst a -> bst a -> bst a
   joinM  x t1 t2 = unexpose $ Node x (t1, t2)
   -- same as joinM except W/S - O(lg (|t1| + |t2|))
-  joinM' x t1 t2 = join t1 (join (singleton x) t2)
+  joinM' x t1 t2 = join t1 -< singleton x >- flip join t2
 
   -- derived basic functions
   -- W/S - O(lg |t|)
