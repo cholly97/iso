@@ -6,6 +6,7 @@ import           Trees
 import           Utils
 
 import           Control.Lens
+import           Control.Zipper
 
 data SplayTree a = E | N a (SplayTree a, SplayTree a)
 
@@ -44,7 +45,7 @@ splayOp' f@(_, _, ps) = f >- case ps of
   []            -> error "root"
 -- W/S - O(lg |t|) expected
 splay, splay' :: Finger SplayTree a -> Finger SplayTree a
-splay = doUntilNothing splayOp
+splay = farthest splayOp
 -- version that uses splayOp'
 splay' f@(_, _, []) = f
 splay' f            = splayOp' f >- splay'

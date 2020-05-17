@@ -25,6 +25,7 @@ dependencies:
 - lens
 - containers
 - cond
+- zippers
 
 library:
   source-dirs: src

@@ -4,6 +4,7 @@ import           Trees
 import           Utils
 
 import           Control.Monad
+import           Control.Zipper
 
 data Range a = NegInf | PosInf | Finite a deriving Eq
 
@@ -75,8 +76,8 @@ class BST bst => FingerBST bst where
     _                   -> parent >>=> maximal
   -- minimal/maximal in subtree, unless Leaf node, in which case return parent
   inf, sup :: Finger bst a -> Maybe (Finger bst a)
-  inf = doUntilNothing childL >-> parent
-  sup = doUntilNothing childR >-> parent
+  inf = farthest childL >-> parent
+  sup = farthest childR >-> parent
 
   -- rotations, fail if either of two nodes are Leafs
   -- W/S - O(1)
