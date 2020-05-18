@@ -68,3 +68,20 @@ instance SelfBalancing SplayTree where
       EQ -> (True, l, r)
       LT -> (False, l, unexpose $ Node k (empty, r))
       GT -> (False, unexpose $ Node k (l, empty), r)
+
+  -- alternate definitions of delete and insert that are slightly more efficient
+  -- also works with semisplaying, unlike the join/split based algorithm, since
+  -- semiplaying doesn't neccesarily bring the accessed node to the root
+  delete k = search' k >-> over _1 deleteNode >-> splayParent >-> reconstruct'
+   where
+    deleteNode :: TreeView SplayTree a -> TreeView SplayTree a
+    deleteNode Leaf              = Leaf
+    deleteNode (Node _ (t1, t2)) = expose $ join t1 t2
+    splayParent :: Finger SplayTree a -> Finger SplayTree a
+    splayParent = parent >>--> splay' >- tug
+  insert k = search' k >-> over _1 insertNode >-> splay' >-> reconstruct'
+   where
+    -- cannot use the following type signature because using k fixes "a"
+    -- insertNode :: TreeView SplayTree a -> TreeView SplayTree a
+    insertNode Leaf = Node k (empty, empty)
+    insertNode f    = f
