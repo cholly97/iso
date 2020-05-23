@@ -7,6 +7,7 @@ import           Utils
 
 import           Control.Lens
 import           Control.Zipper
+import           Data.List.NonEmpty
 
 data SplayTree a = E | N a (SplayTree a, SplayTree a)
 
@@ -25,7 +26,7 @@ instance Show a => Show (SplayTree a) where
   show = toString2d 1
 
 -- W/S - O(1)
-splayOp :: Finger SplayTree a -> Maybe (Finger SplayTree a)
+splayOp, splaySemiOp :: Finger SplayTree a -> Maybe (Finger SplayTree a)
 splayOp f@(_, _, ps) = f >- case ps of
   L{} : L{} : _ -> parent >>=> parent >>=> rotateR >>=> rotateR
   R{} : R{} : _ -> parent >>=> parent >>=> rotateL >>=> rotateL
@@ -34,34 +35,39 @@ splayOp f@(_, _, ps) = f >- case ps of
   L{}       : _ -> parent >>=> rotateR
   R{}       : _ -> parent >>=> rotateL
   []            -> const Nothing
+splaySemiOp f@(_, _, ps) = f >- case ps of
+  L{} : L{} : _ -> parent >>=> parent >>=> rotateR
+  R{} : R{} : _ -> parent >>=> parent >>=> rotateL
+  _             -> splayOp
 splayOp' :: Finger SplayTree a -> Finger SplayTree a
-splayOp' f@(_, _, ps) = f >- case ps of
-  L{} : L{} : _ -> parent' >-> parent' >-> rotateR' >-> rotateR'
-  R{} : R{} : _ -> parent' >-> parent' >-> rotateL' >-> rotateL'
-  L{} : R{} : _ -> parent' >-> rotateR' >-> parent' >-> rotateL'
-  R{} : L{} : _ -> parent' >-> rotateL' >-> parent' >-> rotateR'
-  L{}       : _ -> parent' >-> rotateR'
-  R{}       : _ -> parent' >-> rotateL'
-  []            -> error "root"
+splayOp' f = f >- case Data.List.NonEmpty.fromList $ parents f of
+  L{} :| L{} :  _ -> parent' >-> parent' >-> rotateR' >-> rotateR'
+  R{} :| R{} :  _ -> parent' >-> parent' >-> rotateL' >-> rotateL'
+  L{} :| R{} :  _ -> parent' >-> rotateR' >-> parent' >-> rotateL'
+  R{} :| L{} :  _ -> parent' >-> rotateL' >-> parent' >-> rotateR'
+  L{}        :| _ -> parent' >-> rotateR'
+  R{}        :| _ -> parent' >-> rotateL'
+splaySemiOp' f = f >- case Data.List.NonEmpty.fromList $ parents f of
+  L{} :| L{} : _ -> parent' >-> parent' >-> rotateR'
+  R{} :| R{} : _ -> parent' >-> parent' >-> rotateL'
+  _              -> splayOp'
 -- W/S - O(lg |t|) expected
-splay, splay' :: Finger SplayTree a -> Finger SplayTree a
+splay, splay', splaySemi, splaySemi' :: Finger SplayTree a -> Finger SplayTree a
 splay = farthest splayOp
+splaySemi = farthest splaySemiOp
 -- version that uses splayOp'
-splay' f@(_, _, []) = f
-splay' f            = splayOp' f >- splay'
+splay' f = case parents f of
+  [] -> f
+  _  -> splayOp' f >- splay'
+splaySemi' f = case parents f of
+  [] -> f
+  _  -> splaySemiOp' f >- splaySemi'
 
 instance SelfBalancing SplayTree where
   join t1 t2 = case expose t1 of
     Leaf -> t2
-    _    -> point' t1 >- maximal' >- joinWitht2
-   where
-    joinWitht2 = splay' >-> replaceRt2 >-> unexpose
-    replaceRt2 = set -< Trees.children . _2 -< t2 <-< lift
-    -- partial function because splaying largest element to root
-    -- should always result in empty right child, and no parent
-    -- replaceR (Node k (l, _), (NegInf, PosInf), []) = Node k (l, t2)
-    -- replaceR _ = error "bad implementation of splay and/or sup"
-
+    _    -> point' t1 >- maximal' >- splay' >- lift >- replaceRt2 >- unexpose
+      where replaceRt2 = set -< Trees.children . _2 -< t2
   split k t = case search' k t >- lastAccessed' >- splay' of
     (Leaf          , _, _) -> (False, empty, empty)
     (Node k' (l, r), _, _) -> case compare k k' of
@@ -70,7 +76,7 @@ instance SelfBalancing SplayTree where
       GT -> (False, unexpose $ Node k (l, empty), r)
 
   -- alternate definitions of delete and insert that are slightly more efficient
-  -- also works with semisplaying, unlike the join/split based algorithm, since
+  -- also works with splaySemiing, unlike the join/split based algorithm, since
   -- semiplaying doesn't neccesarily bring the accessed node to the root
   delete k = search' k >-> over _1 deleteNode >-> splayParent >-> reconstruct'
    where
