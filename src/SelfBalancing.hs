@@ -59,13 +59,13 @@ class BST bst => SelfBalancing bst where
   -- S - O(lg n)
   intersect, difference, union :: Ord a => bst a -> bst a -> bst a
   intersect t1 t2 = case (expose t1, expose t2) of
-        (Leaf, _) -> empty
-        (_, Leaf) -> empty
-        (Node k1 (l1, r1), _) ->
-          let (b, l2, r2) = split k1 t2
-              l = intersect l1 l2
-              r = intersect r1 r2
-          in if b then joinM k1 l r else join l r
+    (Leaf, _) -> empty
+    (_, Leaf) -> empty
+    (Node k1 (l1, r1), _) ->
+      let (b, l2, r2) = split k1 t2
+          l = intersect l1 l2
+          r = intersect r1 r2
+      in if b then joinM k1 l r else join l r
   difference t1 t2 = case (expose t1, expose t2) of
     (Leaf, _) -> empty
     (_, Leaf) -> t1
