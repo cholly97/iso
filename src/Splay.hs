@@ -63,6 +63,54 @@ splaySemi' f = case parents f of
   [] -> f
   _  -> splaySemiOp' f >- splaySemi'
 
+splaySearchTopDown :: Ord a => a -> SplayTree a -> SplayTree a
+splaySearchTopDown _ E               = error "leaf"
+splaySearchTopDown k (N k' (l', r')) = splaySearch k' l' r' id id
+ where
+  splaySearch k' l' r' contl contr = case compare k k' of
+    EQ -> reconstruct k' l' r' contl contr
+    LT -> case l' of
+      E                -> reconstruct k' l' r' contl contr
+      N k'' (l'', r'') -> case compare k k'' of
+        EQ -> reconstruct k'' l'' r'' contl (appendr k' r' >-> contr)
+        LT -> case l'' of
+          E -> reconstruct k'' l'' r'' contl (appendr k' r' >-> contr)
+          N k''' (l''', r''') -> splaySearch
+            k'''
+            l'''
+            r'''
+            contl
+            (appendr k'' (N k' (r'', r')) >-> contr)
+        GT -> case r'' of
+          E -> reconstruct k'' l'' r'' contl (appendr k' r' >-> contr)
+          N k''' (l''', r''') -> splaySearch k'''
+                                             l'''
+                                             r'''
+                                             (appendl k'' l'' >-> contl)
+                                             (appendr k' r' >-> contr)
+    GT -> case r' of
+      E                -> reconstruct k' l' r' contl contr
+      N k'' (l'', r'') -> case compare k k'' of
+        EQ -> reconstruct k'' l'' r'' (appendl k' l' >-> contl) contr
+        LT -> case l'' of
+          E -> reconstruct k'' l'' r'' (appendl k' l' >-> contl) contr
+          N k''' (l''', r''') -> splaySearch k'''
+                                             l'''
+                                             r'''
+                                             (appendl k' l' >-> contl)
+                                             (appendr k'' r'' >-> contr)
+        GT -> case r'' of
+          E -> reconstruct k'' l'' r'' (appendl k' l' >-> contl) contr
+          N k''' (l''', r''') -> splaySearch
+            k'''
+            l'''
+            r'''
+            (appendl k'' (N k' (l', l'')) >-> contl)
+            contr
+  appendl k l l' = N k (l, l')
+  appendr k r r' = N k (r', r)
+  reconstruct k l r contl contr = N k (contl l, contr r)
+
 instance SelfBalancing SplayTree where
   join t1 t2 = case expose t1 of
     Leaf -> t2
