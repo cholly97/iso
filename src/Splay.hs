@@ -65,51 +65,39 @@ splaySemi' f = case parents f of
 
 splaySearchTopDown :: Ord a => a -> SplayTree a -> SplayTree a
 splaySearchTopDown _ E               = error "leaf"
-splaySearchTopDown k (N k' (l', r')) = splaySearch k' l' r' id id
+splaySearchTopDown k (N k' (l', r')) = splaySearch id id k' l' r'
  where
-  splaySearch k' l' r' contl contr = case compare k k' of
-    EQ -> reconstruct k' l' r' contl contr
+  searchStep failure fl fr k' l' r' = case compare k k' of
+    EQ -> failure k' l' r'
     LT -> case l' of
-      E                -> reconstruct k' l' r' contl contr
-      N k'' (l'', r'') -> case compare k k'' of
-        EQ -> reconstruct k'' l'' r'' contl (appendr k' r' >-> contr)
-        LT -> case l'' of
-          E -> reconstruct k'' l'' r'' contl (appendr k' r' >-> contr)
-          N k''' (l''', r''') -> splaySearch
-            k'''
-            l'''
-            r'''
-            contl
-            (appendr k'' (N k' (r'', r')) >-> contr)
-        GT -> case r'' of
-          E -> reconstruct k'' l'' r'' contl (appendr k' r' >-> contr)
-          N k''' (l''', r''') -> splaySearch k'''
-                                             l'''
-                                             r'''
-                                             (appendl k'' l'' >-> contl)
-                                             (appendr k' r' >-> contr)
+      E                -> failure k' l' r'
+      N k'' (l'', r'') -> fl k'' l'' r''
     GT -> case r' of
-      E                -> reconstruct k' l' r' contl contr
-      N k'' (l'', r'') -> case compare k k'' of
-        EQ -> reconstruct k'' l'' r'' (appendl k' l' >-> contl) contr
-        LT -> case l'' of
-          E -> reconstruct k'' l'' r'' (appendl k' l' >-> contl) contr
-          N k''' (l''', r''') -> splaySearch k'''
-                                             l'''
-                                             r'''
-                                             (appendl k' l' >-> contl)
-                                             (appendr k'' r'' >-> contr)
-        GT -> case r'' of
-          E -> reconstruct k'' l'' r'' (appendl k' l' >-> contl) contr
-          N k''' (l''', r''') -> splaySearch
-            k'''
-            l'''
-            r'''
-            (appendl k'' (N k' (l', l'')) >-> contl)
-            contr
-  appendl k l l' = N k (l, l')
-  appendr k r r' = N k (r', r)
-  reconstruct k l r contl contr = N k (contl l, contr r)
+      E                -> failure k' l' r'
+      N k'' (l'', r'') -> fr k'' l'' r''
+
+  splaySearch contl contr k' l' r' = searchStep failure fl fr k' l' r'
+   where
+    dcont f dcontl dcontr = f (dcontl contl) (dcontr contr)
+
+    failure = dcont reconstruct id id
+
+    fl k'' l'' r'' = searchStep failurel fll flr k'' l'' r''
+     where
+      failurel = dcont reconstruct -< id -< appendr k' r'
+      fll      = dcont splaySearch -< id -< appendr k'' (N k' (r'', r'))
+      flr      = dcont splaySearch -< appendl k'' l'' -< appendr k' r'
+
+    fr k'' l'' r'' = searchStep failurer frl frr k'' l'' r''
+     where
+      failurer = dcont reconstruct -< appendl k' l' -< id
+      frl      = dcont splaySearch -< appendl k' l' -< appendr k'' r''
+      frr      = dcont splaySearch -< appendl k'' (N k' (l', l'')) -< id
+
+  appendl k l f l' = f $ N k (l, l')
+  appendr k r f r' = f $ N k (r', r)
+  reconstruct contl contr k l r = N k (contl l, contr r)
+
 
 instance SelfBalancing SplayTree where
   join t1 t2 = case expose t1 of
