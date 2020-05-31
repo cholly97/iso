@@ -35,6 +35,10 @@ class BST bst where
   unexpose :: TreeView bst a -> bst a
   -- unexpose (expose t) = t
   -- expose (unexpose t) = t
+  fexpose :: (bst a -> bst b) -> TreeView bst a -> TreeView bst b
+  fexpose f = unexpose >-> f >-> expose
+  funexpose :: (TreeView bst a -> TreeView bst b) -> bst a -> bst b
+  funexpose f = expose >-> f >-> unexpose
 
   -- W - O(|t| lg |t|)
   -- S - O(|t|)
@@ -134,3 +138,8 @@ class BST bst where
               combine ls rs = mconcat [ls, spaces spacing, rs]
               childrenRep = zipWith combine lssPadded rssPadded
           in (fmap padSpaces rootRep ++ childrenRep, l, r, 1)
+
+instance BST bst => Functor (TreeView bst) where
+  fmap f Leaf = Leaf
+  fmap f (Node k (l, r)) =
+    Node (f k) (funexpose -< fmap f -< l, funexpose -< fmap f -< r)
