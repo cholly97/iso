@@ -39,8 +39,9 @@ eval = (-:)
 -- note that here, <!?> =/= (<!) >-> (?>),
 -- instead it is merely the mirror image of <?!>, namely flip (<?!>)
 -- in addition, composition ~ repeated application like so:
--- f1 x >-  ...  >- fn === x -: f1 >->  ...  >-> fn
--- f1 x >>= ... >>= fn === x -: f1 >>=> ... >>=> fn
+-- f1 x >-  ...  >- fn === x -: f1 >->   ...   >-> fn
+-- f1 x >-> ... >-> fn === x -: f1 >>--> ... >>--> fn
+-- f1 x >>= ... >>= fn === x -: f1 >>=>  ...  >>=> fn
 
 
 -- generalized $ (2 types)
