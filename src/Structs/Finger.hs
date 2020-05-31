@@ -110,12 +110,12 @@ class BST bst => FingerBST bst where
       _                   -> childR >>=> inf
   parentL, parentR :: Finger bst a -> Maybe (Finger bst a)
   parentL f = f >- case f of
-    (_, (_, Finite _), p : _) -> case p of
+    (_, (Finite _, _), p : _) -> case p of
       L {}                    -> parent
       R {}                    -> parent >>=> parentL
     _                         -> const Nothing
   parentR f = f >- case f of
-    (_, (Finite _, _), p : _) -> case p of
+    (_, (_, Finite _), p : _) -> case p of
       L {}                    -> parent >>=> parentR
       R {}                    -> parent
     _                         -> const Nothing
@@ -230,13 +230,13 @@ class BST bst => FingerBST' bst where
       _                   -> childR' >-> inf'
   parentL', parentR' :: Finger bst a -> Finger bst a
   parentL' f = f >- case f of
-    (_, (_, Finite _), p : _) -> case p of
+    (_, (Finite _, _), p : _) -> case p of
       L {}                    -> parent'
       R {}                    -> parent' >-> parentL'
     _                         -> error "no left parent"
   parentR' f = f >- case f of
-    (_, (Finite _, _), p : _) -> case p of
-      L {}                    -> parent' >-> parentL'
+    (_, (_, Finite _), p : _) -> case p of
+      L {}                    -> parent' >-> parentR'
       R {}                    -> parent'
     _                         -> error "no right parent"
 
