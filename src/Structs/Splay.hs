@@ -98,6 +98,8 @@ splaySearchTopDown k (N k' (l', r')) = splaySearch id id k' l' r'
   appendr k r f r' = f $ N k (r', r)
   reconstruct contl contr k l r = N k (contl l, contr r)
 
+instance Functor SplayTree where
+  fmap f = funexpose -< fmap f
 
 instance SelfBalancing SplayTree where
   join t1 t2 = case expose t1 of
