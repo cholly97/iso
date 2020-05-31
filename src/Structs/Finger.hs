@@ -68,12 +68,12 @@ class BST bst => FingerBST bst where
   root f = f >- case f of
     (Node {}, _, []) -> Just
     _                -> parent >>=> root
-  minimal f = f >- case f of
-    (_, (NegInf, _), _) -> inf
-    _                   -> parent >>=> minimal
-  maximal f = f >- case f of
-    (_, (_, PosInf), _) -> sup
-    _                   -> parent >>=> maximal
+  minimal f = f >- case interval f of
+    (NegInf, _) -> inf
+    _           -> parent >>=> minimal
+  maximal f = f >- case interval f of
+    (_, PosInf) -> sup
+    _           -> parent >>=> maximal
   -- minimal/maximal in subtree, unless Leaf node, in which case return parent
   inf, sup :: Finger bst a -> Maybe (Finger bst a)
   inf = farthest childL >-> parent
@@ -83,31 +83,29 @@ class BST bst => FingerBST bst where
   -- W/S - O(1)
   rotateR, rotateL :: Finger bst a -> Maybe (Finger bst a)
   rotateR (Leaf, _, _) = Nothing
-  rotateR (Node k (l, r), i, ps) =
-    case expose l of
-      Leaf -> Nothing
-      Node lk (ll, lr) -> Just (Node lk (ll, r'), i, ps)
-        where r' = unexpose $ Node k (lr, r)
+  rotateR (Node k (l, r), i, ps) = case expose l of
+    Leaf             -> Nothing
+    Node lk (ll, lr) -> Just (Node lk (ll, r'), i, ps)
+      where r' = unexpose $ Node k (lr, r)
   rotateL (Leaf, _, _) = Nothing
-  rotateL (Node k (l, r), i, ps) =
-    case expose r of
-      Leaf -> Nothing
-      Node rk (rl, rr) -> Just (Node rk (l', rr), i, ps)
-        where l' = unexpose $ Node k (l, rl)
+  rotateL (Node k (l, r), i, ps) = case expose r of
+    Leaf             -> Nothing
+    Node rk (rl, rr) -> Just (Node rk (l', rr), i, ps)
+      where l' = unexpose $ Node k (l, rl)
 
   -- iterating using fingers, fail if doesn't exist
   -- W/S - O(1) expected
   prev, next :: Ord a => Finger bst a -> Maybe (Finger bst a)
-  prev f = f >- case f of
-    (Leaf, _, _)          -> parentL
-    (Node k (l, _), _, _) -> case expose l of
-      Leaf                -> parentL
-      _                   -> childL >>=> sup
-  next f = f >- case f of
-    (Leaf, _, _)          -> parentR
-    (Node k (_, r), _, _) -> case expose r of
-      Leaf                -> parentR
-      _                   -> childR >>=> inf
+  prev f = f >- case lift f of
+    Leaf          -> parentL
+    Node k (l, _) -> case expose l of
+      Leaf        -> parentL
+      _           -> childL >>=> sup
+  next f = f >- case lift f of
+    Leaf          -> parentR
+    Node k (_, r) -> case expose r of
+      Leaf        -> parentR
+      _           -> childR >>=> inf
   parentL, parentR :: Finger bst a -> Maybe (Finger bst a)
   parentL f = f >- case f of
     (_, (Finite _, _), p : _) -> case p of
@@ -184,50 +182,48 @@ class BST bst => FingerBST' bst where
   root' f = f >- case f of
     (Node {}, _, []) -> id
     _                -> parent' >-> root'
-  minimal' f = f >- case f of
-    (_, (NegInf, _), _) -> inf'
-    _                   -> parent' >-> minimal'
-  maximal' f = f >- case f of
-    (_, (_, PosInf), _) -> sup'
-    _                   -> parent' >-> maximal'
+  minimal' f = f >- case interval f of
+    (NegInf, _) -> inf'
+    _           -> parent' >-> minimal'
+  maximal' f = f >- case interval f of
+    (_, PosInf) -> sup'
+    _           -> parent' >-> maximal'
   -- minimal/maximal in subtree, unless Leaf node, in which case return parent
   inf', sup' :: Finger bst a -> Finger bst a
-  inf' f = f >- case f of
-    (Leaf, _, _) -> parent'
-    _            -> childL' >-> inf'
-  sup' f = f >- case f of
-    (Leaf, _, _) -> parent'
-    _            -> childR' >-> sup'
+  inf' f = f >- case lift f of
+    Leaf -> parent'
+    _    -> childL' >-> inf'
+  sup' f = f >- case lift f of
+    Leaf -> parent'
+    _    -> childR' >-> sup'
 
   -- rotations, fail if either of two nodes are Leafs
   -- W/S - O(1)
   rotateL', rotateR' :: Finger bst a -> Finger bst a
   rotateL' (Leaf, _, _) = error "leaf"
-  rotateL' (Node k (l, r), i, ps) =
-    case expose r of
-      Leaf -> error "right leaf"
-      Node rk (rl, rr) -> (Node rk (l', rr), i, ps)
-        where l' = unexpose $ Node k (l, rl)
+  rotateL' (Node k (l, r), i, ps) = case expose r of
+    Leaf             -> error "right leaf"
+    Node rk (rl, rr) -> (Node rk (l', rr), i, ps)
+      where l' = unexpose $ Node k (l, rl)
   rotateR' (Leaf, _, _) = error "leaf"
-  rotateR' (Node k (l, r), i, ps) =
-    case expose l of
-      Leaf -> error "left leaf"
-      Node lk (ll, lr) -> (Node lk (ll, r'), i, ps)
-        where r' = unexpose $ Node k (lr, r)
+  rotateR' (Node k (l, r), i, ps) = case expose l of
+    Leaf             -> error "left leaf"
+    Node lk (ll, lr) -> (Node lk (ll, r'), i, ps)
+      where r' = unexpose $ Node k (lr, r)
 
   -- iterating using fingers, fail if maximal/minimal Leaf/Node
   -- W/S - O(1) expected
   prev', next' :: Ord a => Finger bst a -> Finger bst a
-  prev' f = f >- case f of
-    (Leaf, _, _)          -> parentL'
-    (Node k (l, _), _, _) -> case expose l of
-      Leaf                -> parentL'
-      _                   -> childL' >-> sup'
-  next' f = f >- case f of
-    (Leaf, _, _)          -> parentR'
-    (Node k (_, r), _, _) -> case expose r of
-      Leaf                -> parentR'
-      _                   -> childR' >-> inf'
+  prev' f = f >- case lift f of
+    Leaf          -> parentL'
+    Node k (l, _) -> case expose l of
+      Leaf        -> parentL'
+      _           -> childL' >-> sup'
+  next' f = f >- case lift f of
+    Leaf          -> parentR'
+    Node k (_, r) -> case expose r of
+      Leaf        -> parentR'
+      _           -> childR' >-> inf'
   parentL', parentR' :: Finger bst a -> Finger bst a
   parentL' f = f >- case f of
     (_, (Finite _, _), p : _) -> case p of
