@@ -2,7 +2,9 @@
 module Limit where
 
 import           Geom
-import           Utils
+import           Utils.Combinators
+import           Utils.Comparison
+import           Utils.Maybe
 
 import           Control.Lens
 import           Data.List                      ( minimumBy )

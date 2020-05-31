@@ -1,7 +1,7 @@
-module SelfBalancing where
+module Structs.SelfBalancing where
 
-import           Trees
-import           Utils
+import           Structs.Trees
+import           Utils.Combinators
 
 class BST bst => SelfBalancing bst where
   -- each function hereafter

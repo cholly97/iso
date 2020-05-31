@@ -1,38 +1,8 @@
-module Utils where
+module Utils.Combinators where
 
 import           Control.Lens
 import           Control.Monad
-import           Data.Function
-import           Data.Maybe
 
--------------------------------- List ------------------------------------------
-
-rpad :: Int -> a -> [a] -> [a]
-rpad n x xs = take n $ xs ++ repeat x
-
--------------------------------- Maybe -----------------------------------------
-
-nothingIf :: (a -> Bool) -> a -> Maybe a
-nothingIf f a = if f a then Nothing else Just a
-
-tryMaybe :: String -> (a -> b) -> Maybe a -> b
-tryMaybe = maybe . error
-
-tryFromMaybe :: String -> Maybe a -> a
-tryFromMaybe = fromMaybe . error
-
--------------------------------- Comparison ------------------------------------
-
-data CompBy a b = CompBy {compFunc :: a -> b, value :: a}
-
-compByFunc
-  :: Ord b
-  => ((CompBy a b -> CompBy a b -> Ordering) -> t (CompBy a b) -> CompBy a b)
-  -> t (CompBy a b)
-  -> a
-compByFunc = eval <-< on compare -< compFunc <*> value >>--> value
-
--------------------------------- Combinators -----------------------------------
 infixl 0 >>>
 (>>>) :: (Monad m0, Monad m1) => m1 (m0 a) -> m1 (m0 b) -> m1 (m0 b)
 (>>>) = liftM2 (>>)

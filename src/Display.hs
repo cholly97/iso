@@ -2,7 +2,7 @@ module Display where
 
 import           Geom
 import           Limit
-import           Utils
+import           Utils.Combinators
 import           World
 
 import           Control.Lens

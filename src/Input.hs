@@ -1,7 +1,7 @@
 module Input where
 
 import           Limit
-import           Utils
+import           Utils.Combinators
 import           World
 
 import           Control.Lens

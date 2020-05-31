@@ -1,9 +1,9 @@
-module Splay where
+module Structs.Splay where
 
-import           Finger
-import           SelfBalancing
-import           Trees
-import           Utils
+import           Structs.Finger
+import           Structs.SelfBalancing
+import           Structs.Trees
+import           Utils.Combinators
 
 import           Control.Lens
 import           Control.Zipper
@@ -103,7 +103,7 @@ instance SelfBalancing SplayTree where
   join t1 t2 = case expose t1 of
     Leaf -> t2
     _    -> point' t1 >- maximal' >- splay' >- lift >- replaceRt2 >- unexpose
-      where replaceRt2 = set -< Trees.children . _2 -< t2
+      where replaceRt2 = set -< Structs.Trees.children . _2 -< t2
   split k t = case search' k t >- lastAccessed' >- splay' of
     (Leaf          , _, _) -> (False, empty, empty)
     (Node k' (l, r), _, _) -> case compare k k' of

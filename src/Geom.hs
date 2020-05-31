@@ -1,6 +1,6 @@
 module Geom where
 
-import           Utils
+import           Utils.Combinators
 
 import           Data.Fixed
 import           Data.Maybe

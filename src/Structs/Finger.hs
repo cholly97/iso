@@ -1,7 +1,7 @@
-module Finger where
+module Structs.Finger where
 
-import           Trees
-import           Utils
+import           Structs.Trees
+import           Utils.Combinators
 
 import           Control.Monad
 import           Control.Zipper

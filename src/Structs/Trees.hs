@@ -1,7 +1,8 @@
 {-# LANGUAGE FlexibleInstances, TemplateHaskell #-}
-module Trees where
+module Structs.Trees where
 
-import           Utils
+import           Utils.Combinators
+import           Utils.List
 
 import           Control.Lens
 import qualified Control.Monad                 as Mon
