@@ -1,4 +1,3 @@
--- {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module SelfBalancing where
 
 import           Trees
