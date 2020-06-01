@@ -21,24 +21,26 @@ instance Eq a => Eq (TreeView t a) where
 instance Ord a => Ord (TreeView t a) where
   compare f1 f2 = compare (getValue f1) (getValue f2)
 
-class BST bst where
+class IsTreeView t where
+  -- W/S - O(1)
+  expose :: t a -> TreeView t a
+  unexpose :: TreeView t a -> t a
+  -- unexpose (expose t) = t
+  -- expose (unexpose t) = t
+
+  fexpose :: (t a -> t b) -> TreeView t a -> TreeView t b
+  fexpose f = unexpose >-> f >-> expose
+  funexpose :: (TreeView t a -> TreeView t b) -> t a -> t b
+  funexpose f = expose >-> f >-> unexpose
+
+class IsTreeView bst => BST bst where
   -- base case constructors
   -- W/S - O(1)
   empty :: bst a
-  expose empty = Leaf
-  unexpose Leaf = empty
+  -- expose empty = Leaf
+  -- unexpose Leaf = empty
   singleton :: a -> bst a
   -- expose $ singleton x = Node x (Leaf, Leaf)
-
-  -- W/S - O(1)
-  expose :: bst a -> TreeView bst a
-  unexpose :: TreeView bst a -> bst a
-  -- unexpose (expose t) = t
-  -- expose (unexpose t) = t
-  fexpose :: (bst a -> bst b) -> TreeView bst a -> TreeView bst b
-  fexpose f = unexpose >-> f >-> expose
-  funexpose :: (TreeView bst a -> TreeView bst b) -> bst a -> bst b
-  funexpose f = expose >-> f >-> unexpose
 
   -- W - O(|t| lg |t|)
   -- S - O(|t|)

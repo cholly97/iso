@@ -11,11 +11,13 @@ import           Data.List.NonEmpty
 
 data SplayTree a = E | N a (SplayTree a, SplayTree a)
 
-instance BST SplayTree where
+instance IsTreeView SplayTree where
   expose E            = Leaf
   expose (N k (l, r)) = Node k (l, r)
   unexpose (Node k (l, r)) = N k (l, r)
   unexpose Leaf            = E
+
+instance BST SplayTree where
   empty = E
   singleton k = N k (E, E)
 
