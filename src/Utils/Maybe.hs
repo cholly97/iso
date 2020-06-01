@@ -10,3 +10,9 @@ tryMaybe = maybe . error
 
 tryFromMaybe :: String -> Maybe a -> a
 tryFromMaybe = fromMaybe . error
+
+infix 4 <!
+(<!) :: Ord a => Maybe a -> Maybe a -> Bool
+Just _  <! Nothing = True
+Just x  <! Just y  = x < y
+Nothing <! _       = False
