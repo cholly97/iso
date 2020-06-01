@@ -42,6 +42,12 @@ eval = (-:)
 -- f1 x >-  ...  >- fn === x -: f1 >->   ...   >-> fn
 -- f1 x >-> ... >-> fn === x -: f1 >>--> ... >>--> fn
 -- f1 x >>= ... >>= fn === x -: f1 >>=>  ...  >>=> fn
+-- this works because
+-- f x ?> g === x :- f >-> (?> g) === x :- (g <?) <-< f === x :- f >-?> g
+-- where (?>) = flip (<?), (>-?>) = flip (<?-<), and
+-- (<?-<) = (<?) >-> (<-<) = flip (?>) >-> (<-<)
+-- and this can be chained:
+-- f x ?> g !> h === (f >-?> g) x !> h === x :- f >-?> g >-!> h
 
 
 -- generalized $ (2 types)
