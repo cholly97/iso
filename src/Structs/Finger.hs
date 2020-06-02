@@ -2,6 +2,7 @@ module Structs.Finger where
 
 import           Structs.Trees
 import           Utils.Combinators
+import           Utils.Function
 import           Utils.Maybe
 
 import           Control.Monad
@@ -65,10 +66,10 @@ class BST bst => FingerBST bst where
     _                -> parent >>=> root
   minimal f = f >- case interval f of
     (Nothing, _) -> inf
-    _           -> parent >>=> minimal
+    _            -> parent >>=> minimal
   maximal f = f >- case interval f of
     (_, Nothing) -> sup
-    _           -> parent >>=> maximal
+    _            -> parent >>=> maximal
   -- minimal/maximal in subtree, unless Leaf node, in which case return parent
 
   inf, sup :: Finger bst a -> Maybe (Finger bst a)
@@ -126,17 +127,19 @@ class BST bst => FingerBST bst where
   -- where i, j are ranks of the start and end keys
 
   searchFrom :: Ord a => a -> Finger bst a -> Maybe (Finger bst a)
-  searchFrom k = sf where
-    sf f@(tv, i, _) = f >- case tv of
-      Leaf      -> if inRange i k
-        then       Just
-        else       parent >>=> sf
-      Node k' _ -> if inRange i k
-        then       case compare k k' of
-          EQ    -> Just
-          LT    -> childL >>=> sf
-          GT    -> childR >>=> sf
-        else       parent >>=> sf
+  searchFrom = searchStep >-> recurse
+
+  searchStep :: Ord a => a -> Finger bst a -> Recursive (Finger bst a) (Maybe (Finger bst a))
+  searchStep k f@(tv, i, _) = f >- case tv of
+    Leaf      -> if inRange i k
+      then       Just >-> Ret
+      else       parent >-> maybeRec
+    Node k' _ -> if inRange i k
+      then       case compare k k' of
+        EQ    -> Just >-> Ret
+        LT    -> childL >-> maybeRec
+        GT    -> childR >-> maybeRec
+      else       parent >-> maybeRec
 
   -- last non-leaf node accessed, unless tree is empty
   -- W/S - O(1)
@@ -191,10 +194,10 @@ class BST bst => FingerBST' bst where
     _                -> parent' >-> root'
   minimal' f = f >- case interval f of
     (Nothing, _) -> inf'
-    _           -> parent' >-> minimal'
+    _            -> parent' >-> minimal'
   maximal' f = f >- case interval f of
     (_, Nothing) -> sup'
-    _           -> parent' >-> maximal'
+    _            -> parent' >-> maximal'
   -- minimal/maximal in subtree, unless Leaf node, in which case return parent
 
   inf', sup' :: Finger bst a -> Finger bst a
@@ -256,22 +259,24 @@ class BST bst => FingerBST' bst where
   -- where i, j are ranks of the start and end keys
 
   searchFrom' :: Ord a => a -> Finger bst a -> Finger bst a
-  searchFrom' k = sf' where
-    sf' f@(tv, i, _) = f >- case tv of
-      Leaf      -> if inRange i k
-        then       id
-        else       parent' >-> sf'
-      Node k' _ -> if inRange i k
-        then       case compare k k' of
-          EQ    -> id
-          LT    -> childL' >-> sf'
-          GT    -> childR' >-> sf'
-        else       parent' >-> sf'
+  searchFrom' = searchStep' >-> recurse
+
+  searchStep' :: Ord a => a -> Finger bst a -> Recursive (Finger bst a) (Finger bst a)
+  searchStep' k f@(tv, i, _) = f >- case tv of
+    Leaf      -> if inRange i k
+      then       Ret
+      else       parent' >-> Rec
+    Node k' _ -> if inRange i k
+      then       case compare k k' of
+        EQ    -> Ret
+        LT    -> childL' >-> Rec
+        GT    -> childR' >-> Rec
+      else       parent' >-> Rec
 
   -- last non-leaf node accessed, unless tree is empty
   -- W/S - O(1)
 
   lastAccessed' :: Finger bst a -> Finger bst a
-  lastAccessed' f = f >- case f of
-    (Leaf, _, _) -> parent'
-    _            -> id
+  lastAccessed' f = f >- case lift f of
+    Leaf -> parent'
+    _    -> id
