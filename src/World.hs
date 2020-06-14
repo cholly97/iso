@@ -3,11 +3,15 @@ module World where
 
 import           Geom
 import           Limit
+import           Structs.SplayMap
 import           Utils.Combinators
+import           Utils.FuzzyFloat
+import           Utils.State
 
 import           Control.Conditional            ( if' )
 import           Control.Lens
 import           Control.Monad
+import           Control.Monad.Trans.State
 import           Graphics.Gloss.Interface.Environment
 import           Graphics.Gloss.Interface.IO.Game
 
@@ -44,11 +48,13 @@ timeUpdate :: Float -> World -> IO World
 timeUpdate dt = maybeInit >=> return . setSnapPoint
 
 setSnapPoint :: World -> World
-setSnapPoint =
-  if' <$> _snapState <*> getSnapPoint <*> _mousePos >>= set snapPoint
+setSnapPoint = uncurry -< set snapPoint <-< pw
+ where
+  pw = if' <$> _snapState <*> runState getSnapPoint <*> liftM2 (,) _mousePos id
 
-getSnapPoint :: World -> Point
-getSnapPoint = snap <$> _mousePos <*> _limits <*> _stickiness . _settings
+getSnapPoint :: State World Point
+getSnapPoint = fState -< view limits -< over limits -< snapWorld
+  where snapWorld = snap <$> _mousePos <*> _stickiness . _settings
 
 maybeInit :: World -> IO World
 maybeInit = doInit >- maybe -< const return <-< _bounds >- join
@@ -59,14 +65,14 @@ doInit w = getScreenSize >-> toBound . join bimap fromIntegral >>= fin
   toBound (w, h) = Just (-w / 2, w / 2, -h / 2, h / 2)
   fin = set bounds ?? w >-> addGridPoint origin >-> return
 
-modWorld :: ((Float, Line) -> LineStore -> LineStore) -> Point -> World -> World
--- modWorld f p w = over limits ?? w $ fmap g
-  -- where g = over lineStore =<< f . pointToLineRep p
-modWorld f =
-  pointToLineRep >>--> f >>=> over lineStore >-> fmap >-> over limits
+modWorld
+  :: (Entry FuzzyFloat Line -> State LineStore ()) -> Point -> World -> World
+modWorld f p = over limits . fmap $ over lineStore =<< execf
+ where
+  execf = pointToLineRep p >-> fst >-> FuzzyFloat >-> dummy >-> f >-> execState
 
 addGridPoint :: Point -> World -> World
-addGridPoint = fuzzyInsert >- modWorld
+addGridPoint = insert' >- modWorld
 
 removeGridPoint :: Point -> World -> World
-removeGridPoint = fst >-> fuzzyDelete >- modWorld
+removeGridPoint = delete' >- modWorld

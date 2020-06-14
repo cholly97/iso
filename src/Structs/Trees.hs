@@ -8,7 +8,7 @@ import           Control.Lens
 import qualified Control.Monad                 as Mon
 import           Data.List
 
-data TreeView t a = Leaf | Node {_key::a, _children:: (t a, t a)}
+data TreeView t a = Leaf | Node {_value :: a, _children :: (t a, t a)}
 $(makeLenses ''TreeView)
 
 getValue :: TreeView t a -> Maybe a

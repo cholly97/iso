@@ -21,10 +21,11 @@ description:         Please see the README on GitHub at <https://github.com/chol
 
 dependencies:
 - base >= 4.7 && < 5
+- cond
+- containers
 - gloss
 - lens
-- containers
-- cond
+- transformers
 - zippers
 
 library:

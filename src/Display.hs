@@ -2,12 +2,12 @@ module Display where
 
 import           Geom
 import           Limit
+import           Structs.SplayMap
 import           Utils.Combinators
 import           World
 
 import           Control.Lens
 import           Control.Monad
-import qualified Data.Map.Strict               as Map
 import           Data.Maybe
 import           Graphics.Gloss.Interface.IO.Game
 
@@ -41,5 +41,5 @@ drawPoint p = Color blue . translateP p $ ThickCircle 2 4
 
 drawGridLines :: Bounds -> Limit -> Picture
 drawGridLines =
---lim->ls            ls->[l]         p<-[l]<-([p]<-[l])         p<-l<-b
-  view lineStore >-> Map.elems >--<> fmap Pictures <-< fmap <-< linePP
+--lim->ls            ls->[l]     p<-[l]<-([p]<-[l])         p<-l<-b
+  view lineStore >-> elems >--<> fmap Pictures <-< fmap <-< linePP
